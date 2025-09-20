@@ -120,21 +120,36 @@ export const listEpubFiles = async (folderId: string): Promise<DriveFile[]> => {
   if (!tokens) return [];
 
   const query = `'${folderId}' in parents and mimeType='application/epub+zip'`;
-  const fields = 'files(id,name,mimeType,size)';
+  const fields = 'nextPageToken,files(id,name,mimeType,size)';
+  let allFiles: DriveFile[] = [];
+  let pageToken: string | null = null;
   
-  const response = await fetch(
-    `https://www.googleapis.com/drive/v3/files?q=${encodeURIComponent(query)}&fields=${encodeURIComponent(fields)}`,
-    {
+  do {
+    const url = new URL('https://www.googleapis.com/drive/v3/files');
+    url.searchParams.append('q', query);
+    url.searchParams.append('fields', fields);
+    url.searchParams.append('pageSize', '100'); // Get maximum items per request
+    if (pageToken) {
+      url.searchParams.append('pageToken', pageToken);
+    }
+
+    const response = await fetch(url.toString(), {
       headers: {
         Authorization: `Bearer ${tokens.access_token}`,
       },
-    }
-  );
+    });
 
-  if (!response.ok) return [];
+    if (!response.ok) {
+      console.error('Failed to fetch files:', response.statusText);
+      break;
+    }
   
-  const data = await response.json();
-  return data.files;
+    const data = await response.json();
+    allFiles = allFiles.concat(data.files || []);
+    pageToken = data.nextPageToken || null;
+  } while (pageToken);
+
+  return allFiles;
 };
 
 // Create a separate cache instance for epub files
