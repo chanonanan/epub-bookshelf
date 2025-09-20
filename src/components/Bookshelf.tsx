@@ -8,8 +8,6 @@ import { extractBookInfo, getCachedCover, getCachedMetadata } from '../epubUtils
 import { Button } from './ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from './ui/card';
 import { BookDetailsDialog } from './BookDetailsDialog';
-
-
 import { type BookMetadata } from '../epubUtils';
 
 interface SeriesGroup {
@@ -19,10 +17,10 @@ interface SeriesGroup {
 }
 
 interface BookshelfProps {
-  onBookSelect?: (bookId: string) => void;
+  folderId: string;
 }
 
-export const Bookshelf: FC<BookshelfProps> = ({ onBookSelect }) => {
+export const Bookshelf: FC<BookshelfProps> = ({ folderId }) => {
   const [books, setBooks] = useState<BookMetadata[]>([]);
   const [series, setSeries] = useState<SeriesGroup[]>([]);
   const [loading, setLoading] = useState(true);
@@ -34,8 +32,9 @@ export const Bookshelf: FC<BookshelfProps> = ({ onBookSelect }) => {
   const [selectedBookId, setSelectedBookId] = useState<string | null>(null);
 
   useEffect(() => {
-    loadBooks();
-  }, []);
+    // Load books when folderId changes
+    loadBooks(folderId);
+  }, [folderId]);
 
   useEffect(() => {
     // Group books by series when books array changes
@@ -77,13 +76,13 @@ export const Bookshelf: FC<BookshelfProps> = ({ onBookSelect }) => {
     return seriesGroups.sort((a, b) => a.name.localeCompare(b.name));
   };
 
-  const loadBooks = async () => {
+  const loadBooks = async (folderId: string) => {
     try {
       setLoading(true);
       setError(null);
       
       // Get list of EPUB files from Drive
-      const files = await listEpubFiles();
+      const files = await listEpubFiles(folderId);
       
       // Process each file
       const bookPromises = files.map(async (file) => {
@@ -129,7 +128,7 @@ export const Bookshelf: FC<BookshelfProps> = ({ onBookSelect }) => {
     return (
       <div className="flex flex-col items-center justify-center gap-4 min-h-screen">
         <p className="text-destructive">{error}</p>
-        <Button variant="outline" onClick={() => loadBooks()}>
+        <Button variant="outline" onClick={() => loadBooks(folderId)}>
           Retry
         </Button>
       </div>
@@ -239,23 +238,24 @@ export const Bookshelf: FC<BookshelfProps> = ({ onBookSelect }) => {
     </div>
   );
 
-  console.log(series);
   return (
     <div className="container mx-auto px-4 py-8">
-      {selectedSeries ? (
-        <>
-          <div className="mb-6 flex items-center">
+      <div className="mb-6 flex items-center justify-between">
+        <div className="flex items-center">
+          {selectedSeries && (
             <Button
               variant="outline"
               onClick={() => setSelectedSeries(null)}
-              className="mb-4"
+              className="mr-4"
             >
               ← Back to All Series
             </Button>
-            <h2 className="text-2xl font-bold ml-4">{selectedSeries}</h2>
-          </div>
-          {renderBookGrid(series.find(s => s.name === selectedSeries)?.books || [])}
-        </>
+          )}
+          <h2 className="text-2xl font-bold">{selectedSeries || 'All Series'}</h2>
+        </div>
+      </div>
+      {selectedSeries ? (
+        renderBookGrid(series.find(s => s.name === selectedSeries)?.books || [])
       ) : (
         renderSeriesGrid()
       )}

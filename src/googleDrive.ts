@@ -115,11 +115,11 @@ export const getTokens = async (): Promise<GoogleTokens | null> => {
 /**
  * List all EPUB files in user's Drive
  */
-export const listEpubFiles = async (): Promise<DriveFile[]> => {
+export const listEpubFiles = async (folderId: string): Promise<DriveFile[]> => {
   const tokens = await getTokens();
   if (!tokens) return [];
 
-  const query = "mimeType='application/epub+zip'";
+  const query = `'${folderId}' in parents and mimeType='application/epub+zip'`;
   const fields = 'files(id,name,mimeType,size)';
   
   const response = await fetch(
