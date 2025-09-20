@@ -1,0 +1,217 @@
+/**
+ * Helper functions for Google Drive API authentication and file operations
+ */
+import localforage from 'localforage';
+
+interface GoogleTokens {
+  access_token: string;
+  expires_at: number;
+}
+
+interface DriveFile {
+  id: string;
+  name: string;
+  mimeType: string;
+  size: string;
+}
+
+interface TokenResponse {
+  access_token: string;
+  expires_in: number;
+  error?: string;
+}
+
+interface GoogleIdentityServices {
+  accounts: {
+    oauth2: {
+      initTokenClient(config: {
+        client_id: string;
+        scope: string;
+        callback: (response: TokenResponse) => void;
+        prompt?: string;
+        auto_select?: boolean;
+      }): {
+        requestAccessToken(): void;
+        callback: (response: TokenResponse) => void;
+      };
+    };
+  };
+}
+
+declare global {
+  interface Window {
+    google: GoogleIdentityServices;
+  }
+}
+
+const SCOPE = 'https://www.googleapis.com/auth/drive.readonly';
+const CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID;
+
+let client: ReturnType<typeof window.google.accounts.oauth2.initTokenClient> | null = null;
+
+let tokenPromise: Promise<GoogleTokens | null> | null = null;
+
+/**
+ * Initialize Google Identity Services
+ */
+export const initializeGoogleAuth = async (): Promise<void> => {
+  return new Promise((resolve, reject) => {
+    const script = document.createElement('script');
+    script.src = 'https://accounts.google.com/gsi/client';
+    script.onload = async () => {
+      try {
+        // Initialize the client
+        client = window.google.accounts.oauth2.initTokenClient({
+          client_id: CLIENT_ID,
+          scope: SCOPE,
+          prompt: '', // Empty string to use default prompt for test users
+          auto_select: true, // Auto select the test account
+          callback: (response: TokenResponse) => {
+            if (response.error) {
+              reject(response.error);
+              return;
+            }
+
+            // Store tokens
+            const tokens: GoogleTokens = {
+              access_token: response.access_token,
+              expires_at: Date.now() + (response.expires_in * 1000)
+            };
+            localforage.setItem('google_tokens', tokens);
+            tokenPromise = Promise.resolve(tokens);
+            resolve();
+          },
+        });
+
+        // Check if we have cached tokens
+        const cachedTokens = await localforage.getItem<GoogleTokens>('google_tokens');
+        if (cachedTokens && cachedTokens.expires_at > Date.now()) {
+          tokenPromise = Promise.resolve(cachedTokens);
+          resolve();
+          return;
+        }
+
+        // Request new tokens
+        client?.requestAccessToken();
+      } catch (err) {
+        reject(err);
+      }
+    };
+    script.onerror = () => reject(new Error('Failed to load Google Identity Services'));
+    document.head.appendChild(script);
+  });
+};
+
+/**
+ * Get OAuth tokens, either from cache or by authenticating
+ */
+export const getTokens = async (): Promise<GoogleTokens | null> => {
+  if (!tokenPromise) {
+    tokenPromise = _refreshTokens();
+  }
+  return tokenPromise;
+};
+
+/**
+ * List all EPUB files in user's Drive
+ */
+export const listEpubFiles = async (): Promise<DriveFile[]> => {
+  const tokens = await getTokens();
+  if (!tokens) return [];
+
+  const query = "mimeType='application/epub+zip'";
+  const fields = 'files(id,name,mimeType,size)';
+  
+  const response = await fetch(
+    `https://www.googleapis.com/drive/v3/files?q=${encodeURIComponent(query)}&fields=${encodeURIComponent(fields)}`,
+    {
+      headers: {
+        Authorization: `Bearer ${tokens.access_token}`,
+      },
+    }
+  );
+
+  if (!response.ok) return [];
+  
+  const data = await response.json();
+  return data.files;
+};
+
+// Create a separate cache instance for epub files
+const epubCache = localforage.createInstance({
+  name: 'epubBookshelf',
+  storeName: 'epubFiles',
+});
+
+/**
+ * Download an EPUB file from Drive with caching
+ */
+export const downloadFile = async (fileId: string): Promise<Blob | null> => {
+  // Check cache first
+  const cachedFile = await epubCache.getItem<Blob>(fileId);
+  if (cachedFile) {
+    return cachedFile;
+  }
+
+  // If not in cache, download from Drive
+  const tokens = await getTokens();
+  if (!tokens) return null;
+
+  const response = await fetch(
+    `https://www.googleapis.com/drive/v3/files/${fileId}?alt=media`,
+    {
+      headers: {
+        Authorization: `Bearer ${tokens.access_token}`,
+      },
+    }
+  );
+
+  if (!response.ok) return null;
+  
+  const blob = await response.blob();
+  
+  // Cache the downloaded file
+  await epubCache.setItem(fileId, blob);
+  
+  return blob;
+};
+
+// Private helper functions
+const _refreshTokens = async (): Promise<GoogleTokens | null> => {
+  try {
+    if (!client) {
+      await initializeGoogleAuth();
+    }
+
+    // Check cache first
+    const cachedTokens = await localforage.getItem<GoogleTokens>('google_tokens');
+    if (cachedTokens && cachedTokens.expires_at > Date.now()) {
+      return cachedTokens;
+    }
+
+    // Request new tokens
+    return new Promise((resolve) => {
+      if (client) {
+        client.callback = (response: TokenResponse) => {
+          if (response.error) {
+            resolve(null);
+            return;
+          }
+
+          const tokens: GoogleTokens = {
+            access_token: response.access_token,
+            expires_at: Date.now() + (response.expires_in * 1000)
+          };
+          localforage.setItem('google_tokens', tokens);
+          resolve(tokens);
+        };
+        client.requestAccessToken();
+      } else {
+        resolve(null);
+      }
+    });
+  } catch (error) {
+    console.error('Error refreshing tokens:', error);
+    return null;
+  }
+};
