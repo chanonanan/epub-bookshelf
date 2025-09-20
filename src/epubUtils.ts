@@ -9,7 +9,8 @@ export interface BookMetadata {
   id: string;
   title: string;
   author: string;
-  coverUrl?: string;
+  coverUrl?: string;      // URL for display (object URL or data URL)
+  coverUrl?: string;     // Base64 encoded cover image data
   series?: string;
   seriesIndex?: number;
   tags: string[];
@@ -22,15 +23,57 @@ export interface BookMetadata {
   downloadUrl?: string;
 }
 
-const coverCache = localforage.createInstance({
-  name: 'epubBookshelf',
-  storeName: 'covers',
-});
-
 const metadataCache = localforage.createInstance({
   name: 'epubBookshelf',
   storeName: 'metadata',
 });
+
+const blobToBase64 = (blob: Blob): Promise<string> => {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      if (typeof reader.result === 'string') {
+        resolve(reader.result);
+      } else {
+        reject(new Error('Failed to convert blob to base64'));
+      }
+    };
+    reader.onerror = reject;
+    reader.readAsDataURL(blob);
+  });
+};
+
+const folderMetadataCache = localforage.createInstance({
+  name: 'epubBookshelf',
+  storeName: 'folderMetadata',
+});
+
+/**
+ * Get all cached book metadata for a folder
+ */
+export const getCachedFolderBooks = async (folderId: string): Promise<BookMetadata[]> => {
+  try {
+    const cached = await folderMetadataCache.getItem<BookMetadata[]>(folderId);
+    if (!cached) return [];
+
+    return cached;
+  } catch (error) {
+    console.error('Error getting cached folder books:', error);
+    return [];
+  }
+};
+
+/**
+ * Save book metadata for a folder to cache
+ */
+export const saveFolderBooks = async (folderId: string, books: BookMetadata[]): Promise<void> => {
+  try {
+    // Store books with all metadata including coverUrl
+    await folderMetadataCache.setItem(folderId, books);
+  } catch (error) {
+    console.error('Error saving folder books:', error);
+  }
+};
 
 /**
  * Extract metadata and cover from an EPUB file
@@ -96,20 +139,11 @@ export const extractBookInfo = async (fileId: string, epubBlob: Blob): Promise<B
       }
     }
 
-    // Also check dc:subject tags for any additional Calibre metadata
+    // Also check dc:subject tags
     const subjectMatches = opfContent.matchAll(/<dc:subject[^>]*>([^<]+)<\/dc:subject>/g);
     for (const match of subjectMatches) {
       const subject = match[1];
-      if (subject.startsWith('calibre:')) {
-        // Calibre ID format: "calibre:id:#"
-        const idMatch = subject.match(/^calibre:id:(\d+)$/);
-        if (idMatch) {
-          result.calibreId = idMatch[1];
-        }
-      } else {
-        // Regular tags
-        result.tags.push(subject);
-      }
+      result.tags.push(subject);
     }
   }
 
@@ -150,8 +184,9 @@ export const extractBookInfo = async (fileId: string, epubBlob: Blob): Promise<B
       }
 
       if (coverBlob) {
-        result.coverUrl = URL.createObjectURL(coverBlob);
-        await coverCache.setItem(fileId, coverBlob);
+        const base64Data = await blobToBase64(coverBlob);
+        result.coverUrl = base64Data;
+        // result.coverUrl = URL.createObjectURL(coverBlob);
       }
     }
   } catch (error) {
@@ -163,18 +198,12 @@ export const extractBookInfo = async (fileId: string, epubBlob: Blob): Promise<B
 
   // Store metadata in cache (without coverUrl as it's temporary)
   const metadataToCache = { ...result };
-  delete metadataToCache.coverUrl;
   await metadataCache.setItem(fileId, metadataToCache);
 
   return result;
 };
 
-/**
- * Get a cached cover image Blob
- */
-export const getCachedCover = async (fileId: string): Promise<Blob | null> => {
-  return coverCache.getItem<Blob>(fileId);
-};
+
 
 /**
  * Get cached book metadata

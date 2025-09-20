@@ -1,14 +1,17 @@
 /**
  * Displays a grid of book covers with titles
  */
-import { type FC, useEffect, useState } from 'react';
+import { type FC, useEffect, useState, useRef } from 'react';
+import { LazyImage } from './ui/lazy-image';
 import { ReaderDialog } from './ReaderDialog';
 import { listEpubFiles, downloadFile } from '../googleDrive';
-import { extractBookInfo, getCachedCover, getCachedMetadata } from '../epubUtils';
+import { extractBookInfo, getCachedMetadata, getCachedFolderBooks, saveFolderBooks } from '../epubUtils';
 import { Button } from './ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from './ui/card';
-import { BookDetailsDialog } from './BookDetailsDialog';
+
 import { type BookMetadata } from '../epubUtils';
+import { useNavigate } from 'react-router-dom';
+import { Badge } from "@/components/ui/badge";
 
 interface SeriesGroup {
   name: string;
@@ -18,23 +21,52 @@ interface SeriesGroup {
 
 interface BookshelfProps {
   folderId: string;
+  initialSeries?: string;
 }
 
-export const Bookshelf: FC<BookshelfProps> = ({ folderId }) => {
+export const Bookshelf: FC<BookshelfProps> = ({ folderId, initialSeries }) => {
+  const navigate = useNavigate();
   const [books, setBooks] = useState<BookMetadata[]>([]);
   const [series, setSeries] = useState<SeriesGroup[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [isDetailsOpen, setIsDetailsOpen] = useState(false);
-  const [selectedBook, setSelectedBook] = useState<BookMetadata | null>(null);
-  const [selectedSeries, setSelectedSeries] = useState<string | null>(null);
+  const gridRef = useRef<HTMLDivElement>(null);
+  const selectedSeries = initialSeries;
   const [isReaderOpen, setIsReaderOpen] = useState(false);
   const [selectedBookId, setSelectedBookId] = useState<string | null>(null);
 
   useEffect(() => {
     // Load books when folderId changes
-    loadBooks(folderId);
+    if (folderId) {
+      loadBooks(folderId);
+    }
   }, [folderId]);
+
+  // Restore scroll position when changing views
+  useEffect(() => {
+    if (gridRef.current) {
+      const scrollKey = `bookshelf-scroll-${folderId}-${initialSeries || 'all'}`;
+      const savedScrollTop = sessionStorage.getItem(scrollKey);
+      
+      if (savedScrollTop) {
+        // Delay scroll restoration to ensure content is rendered
+        setTimeout(() => {
+          gridRef.current?.scrollTo({
+            top: Number(savedScrollTop),
+            behavior: 'instant'
+          });
+        }, 0);
+      }
+
+      // Save scroll position when unmounting or changing view
+      const currentGrid = gridRef.current;
+      return () => {
+        if (currentGrid) {
+          sessionStorage.setItem(scrollKey, currentGrid.scrollTop.toString());
+        }
+      };
+    }
+  }, [folderId, initialSeries]);
 
   useEffect(() => {
     // Group books by series when books array changes
@@ -80,23 +112,27 @@ export const Bookshelf: FC<BookshelfProps> = ({ folderId }) => {
     try {
       setLoading(true);
       setError(null);
-      
-      // Get list of EPUB files from Drive
+
+      // First try to get cached folder data
+      const cachedBooks = await getCachedFolderBooks(folderId);
+      if (cachedBooks.length > 0) {
+        setBooks(cachedBooks);
+        setLoading(false);
+        return;
+      }
+
+      // Get list of EPUB files from Drive and process in background
       const files = await listEpubFiles(folderId);
       
       // Process each file
-      const bookPromises = files.map(async (file) => {
+      const bookPromises: Promise<BookMetadata | null>[] = files.map(async (file) => {
         try {
           // Check cache first
           const cachedMetadata = await getCachedMetadata(file.id);
-          const cachedCover = await getCachedCover(file.id);
           
-          if (cachedMetadata && cachedCover) {
-            // Create object URL for cached cover
-            const coverUrl = URL.createObjectURL(cachedCover);
+          if (cachedMetadata) {
             return {
               ...cachedMetadata,
-              coverUrl,
               fileSize: file.size,
             };
           }
@@ -118,7 +154,17 @@ export const Bookshelf: FC<BookshelfProps> = ({ folderId }) => {
       });
 
       const bookResults = await Promise.all(bookPromises);
-      setBooks(bookResults.filter((book): book is BookMetadata => book !== null));
+      const newBooks = bookResults.filter((book): book is BookMetadata => 
+        book !== null && 
+        typeof book.id === 'string' &&
+        typeof book.title === 'string' &&
+        typeof book.author === 'string' &&
+        Array.isArray(book.tags)
+      );
+
+      // Save to folder cache
+      await saveFolderBooks(folderId, newBooks);
+      setBooks(newBooks);
       
     } catch (err) {
       setError('Failed to load books. Please try again.');
@@ -155,30 +201,21 @@ export const Bookshelf: FC<BookshelfProps> = ({ folderId }) => {
         <button
           key={book.id}
           className="text-left focus:outline-none w-full"
-          onClick={() => {
-            setSelectedBook(book);
-            setIsDetailsOpen(true);
-          }}
+          onClick={() => navigate(`/book/${book.id}`)}
         >
           <Card className="hover:bg-accent transition-colors">
             <CardHeader className="p-0">
               <div className="relative w-full aspect-[2/3] bg-muted rounded-t-lg overflow-hidden">
-                {book.coverUrl ? (
-                  <img
-                    src={book.coverUrl}
-                    alt={`${book.title} cover`}
-                    className="w-full h-full object-cover"
-                  />
-                ) : (
-                  <div className="w-full h-full flex items-center justify-center text-muted-foreground">
-                    No Cover
-                  </div>
-                )}
+                <LazyImage
+                  src={book.coverUrl || ''}
+                  alt={`${book.title} cover`}
+                  className="w-full h-full object-cover"
+                />
               </div>
             </CardHeader>
             <CardContent className="p-4">
               <CardTitle className="line-clamp-2 text-base mb-1">
-                {book.series ? `${book.title} (#${book.seriesIndex || '?'})` : book.title}
+                {book.series ? `${book.title} (#${typeof book.seriesIndex === 'number' ? book.seriesIndex : '?'})` : book.title}
               </CardTitle>
               <CardDescription className="line-clamp-1">
                 {book.author}
@@ -187,20 +224,6 @@ export const Bookshelf: FC<BookshelfProps> = ({ folderId }) => {
           </Card>
         </button>
       ))}
-
-      <BookDetailsDialog
-        book={selectedBook}
-        isOpen={isDetailsOpen}
-        onClose={() => {
-          setIsDetailsOpen(false);
-          setSelectedBook(null);
-        }}
-        onRead={(bookId) => {
-          setSelectedBookId(bookId);
-          setIsDetailsOpen(false);
-          setIsReaderOpen(true);
-        }}
-      />
 
       <ReaderDialog
         bookId={selectedBookId}
@@ -219,24 +242,18 @@ export const Bookshelf: FC<BookshelfProps> = ({ folderId }) => {
         <Card
           key={group.name}
           className="hover:bg-accent transition-colors cursor-pointer relative"
-          onClick={() => setSelectedSeries(group.name)}
+          onClick={() => navigate(`/bookshelf/${folderId}/${encodeURIComponent(group.name)}`)}
         >
           <CardHeader className="p-0">
             <div className="relative w-full aspect-[2/3] bg-muted rounded-t-lg overflow-hidden">
-              {group.coverUrl ? (
-                <img
-                  src={group.coverUrl}
-                  alt={`${group.name} cover`}
-                  className="w-full h-full object-cover"
-                />
-              ) : (
-                <div className="w-full h-full flex items-center justify-center text-muted-foreground">
-                  No Cover
-                </div>
-              )}
-              <div className="absolute top-2 right-2 bg-background/80 px-2 py-1 rounded text-sm">
+              <LazyImage
+                src={group.coverUrl || ''}
+                alt={`${group.name} cover`}
+                className="w-full h-full object-cover"
+              />
+              <Badge variant="default" className="absolute top-2 right-2">
                 {group.books.length} book{group.books.length !== 1 ? 's' : ''}
-              </div>
+              </Badge>
             </div>
           </CardHeader>
           <CardContent className="p-4">
@@ -253,13 +270,17 @@ export const Bookshelf: FC<BookshelfProps> = ({ folderId }) => {
   );
 
   return (
-    <div className="container mx-auto px-4 py-8">
-      <div className="mb-6 flex items-center justify-between">
+    <div 
+      ref={gridRef}
+      className="container mx-auto px-4 py-8 min-h-screen overflow-y-auto scroll-smooth"
+      style={{ scrollPaddingTop: '1rem' }}
+    >
+      <div className="mb-6 flex items-center justify-between sticky top-0 bg-background z-10 py-4">
         <div className="flex items-center">
           {selectedSeries && (
             <Button
               variant="outline"
-              onClick={() => setSelectedSeries(null)}
+              onClick={() => navigate(`/bookshelf/${folderId}`)}
               className="mr-4"
             >
               ← Back to All Series
