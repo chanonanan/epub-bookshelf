@@ -19,6 +19,7 @@ export interface BookMetadata {
   publisher?: string;
   publishDate?: string;
   fileSize?: string;
+  downloadUrl?: string;
 }
 
 const coverCache = localforage.createInstance({
@@ -35,17 +36,6 @@ const metadataCache = localforage.createInstance({
  * Extract metadata and cover from an EPUB file
  */
 export const extractBookInfo = async (fileId: string, epubBlob: Blob): Promise<BookMetadata> => {
-  // Check cache first
-  const cachedMetadata = await metadataCache.getItem<BookMetadata>(fileId);
-  const cachedCover = await coverCache.getItem<Blob>(fileId);
-
-  // Only use cache if both metadata and cover are available
-  if (cachedMetadata && cachedCover) {
-    // Ensure the coverUrl is fresh by creating a new object URL
-    cachedMetadata.coverUrl = URL.createObjectURL(cachedCover);
-    return cachedMetadata;
-  }
-
   // Convert Blob to ArrayBuffer
   const arrayBuffer = await epubBlob.arrayBuffer();
 
@@ -168,21 +158,22 @@ export const extractBookInfo = async (fileId: string, epubBlob: Blob): Promise<B
     console.error('Error extracting cover:', error);
   }
 
-  // Cache the metadata
-  await metadataCache.setItem(fileId, result);
+  // Clean up book object
+  book.destroy();
+
+  // Store metadata in cache (without coverUrl as it's temporary)
+  const metadataToCache = { ...result };
+  delete metadataToCache.coverUrl;
+  await metadataCache.setItem(fileId, metadataToCache);
 
   return result;
 };
 
 /**
- * Get a cached cover image URL
+ * Get a cached cover image Blob
  */
-export const getCachedCover = async (fileId: string): Promise<string | null> => {
-  const coverBlob = await coverCache.getItem<Blob>(fileId);
-  if (coverBlob) {
-    return URL.createObjectURL(coverBlob);
-  }
-  return null;
+export const getCachedCover = async (fileId: string): Promise<Blob | null> => {
+  return coverCache.getItem<Blob>(fileId);
 };
 
 /**

@@ -152,23 +152,10 @@ export const listEpubFiles = async (folderId: string): Promise<DriveFile[]> => {
   return allFiles;
 };
 
-// Create a separate cache instance for epub files
-const epubCache = localforage.createInstance({
-  name: 'epubBookshelf',
-  storeName: 'epubFiles',
-});
-
 /**
- * Download an EPUB file from Drive with caching
+ * Download an EPUB file from Drive (no caching)
  */
 export const downloadFile = async (fileId: string): Promise<Blob | null> => {
-  // Check cache first
-  const cachedFile = await epubCache.getItem<Blob>(fileId);
-  if (cachedFile) {
-    return cachedFile;
-  }
-
-  // If not in cache, download from Drive
   const tokens = await getTokens();
   if (!tokens) return null;
 
@@ -183,12 +170,7 @@ export const downloadFile = async (fileId: string): Promise<Blob | null> => {
 
   if (!response.ok) return null;
   
-  const blob = await response.blob();
-  
-  // Cache the downloaded file
-  await epubCache.setItem(fileId, blob);
-  
-  return blob;
+  return response.blob();
 };
 
 // Private helper functions

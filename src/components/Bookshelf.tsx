@@ -86,21 +86,35 @@ export const Bookshelf: FC<BookshelfProps> = ({ folderId }) => {
       
       // Process each file
       const bookPromises = files.map(async (file) => {
-        // Check cache first
-        const cachedMetadata = await getCachedMetadata(file.id);
-        const cachedCover = await getCachedCover(file.id);
-        if (cachedMetadata && cachedCover) {
+        try {
+          // Check cache first
+          const cachedMetadata = await getCachedMetadata(file.id);
+          const cachedCover = await getCachedCover(file.id);
+          
+          if (cachedMetadata && cachedCover) {
+            // Create object URL for cached cover
+            const coverUrl = URL.createObjectURL(cachedCover);
+            return {
+              ...cachedMetadata,
+              coverUrl,
+              fileSize: file.size,
+            };
+          }
+
+          // Download and process if not cached
+          const epubBlob = await downloadFile(file.id);
+          if (!epubBlob) return null;
+
+          // Extract metadata and cover, then immediately clear the blob
+          const metadata = await extractBookInfo(file.id, epubBlob);
           return {
-            ...cachedMetadata,
-            coverUrl: cachedCover || undefined,
+            ...metadata,
+            fileSize: file.size,
           };
+        } catch (error) {
+          console.error('Error processing file:', file.name, error);
+          return null;
         }
-
-        // Download and process if not cached
-        const epubBlob = await downloadFile(file.id);
-        if (!epubBlob) return null;
-
-        return extractBookInfo(file.id, epubBlob);
       });
 
       const bookResults = await Promise.all(bookPromises);
