@@ -1,5 +1,6 @@
 import { useParams } from 'react-router-dom';
 import { Bookshelf } from '../components/Bookshelf';
+import { RoutingPath } from '@/components/RoutingPath';
 
 interface SeriesPageProps {
   searchQuery?: string;
@@ -10,16 +11,18 @@ export default function SeriesPage({ searchQuery }: SeriesPageProps) {
     folderId: string;
     series: string;
   }>();
+  const selectedSeries = series ? decodeURIComponent(series) : null;
 
   if (!folderId) {
     return <div>Invalid folder ID</div>;
   }
 
   return (
-    <div className="bg-background">
+    <div className="max-w-4xl mx-auto">
+      <RoutingPath />
       <Bookshelf
         folderId={folderId}
-        initialSeries={decodeURIComponent(series || '')}
+        initialSeries={selectedSeries || ''}
         searchQuery={searchQuery}
       />
     </div>

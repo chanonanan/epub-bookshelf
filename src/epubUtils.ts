@@ -4,12 +4,15 @@
 import epub from 'epubjs';
 import JSZip from 'jszip';
 import localforage from 'localforage';
+import { downloadFile, listEpubFiles } from './googleDrive';
 
 export interface BookMetadata {
   id: string;
   title: string;
   author: string;
   coverUrl?: string; // Base64 encoded cover image data
+  thumbUrl?: string; // Thumbnail version of cover image
+  coverBlob?: Blob; // Cover image as Blob
   series?: string;
   seriesIndex?: number;
   tags: string[];
@@ -26,58 +29,6 @@ const metadataCache = localforage.createInstance({
   name: 'epubBookshelf',
   storeName: 'metadata',
 });
-
-const blobToBase64 = (blob: Blob): Promise<string> => {
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onloadend = () => {
-      if (typeof reader.result === 'string') {
-        resolve(reader.result);
-      } else {
-        reject(new Error('Failed to convert blob to base64'));
-      }
-    };
-    reader.onerror = reject;
-    reader.readAsDataURL(blob);
-  });
-};
-
-const folderMetadataCache = localforage.createInstance({
-  name: 'epubBookshelf',
-  storeName: 'folderMetadata',
-});
-
-/**
- * Get all cached book metadata for a folder
- */
-export const getCachedFolderBooks = async (
-  folderId: string,
-): Promise<BookMetadata[]> => {
-  try {
-    const cached = await folderMetadataCache.getItem<BookMetadata[]>(folderId);
-    if (!cached) return [];
-
-    return cached;
-  } catch (error) {
-    console.error('Error getting cached folder books:', error);
-    return [];
-  }
-};
-
-/**
- * Save book metadata for a folder to cache
- */
-export const saveFolderBooks = async (
-  folderId: string,
-  books: BookMetadata[],
-): Promise<void> => {
-  try {
-    // Store books with all metadata including coverUrl
-    await folderMetadataCache.setItem(folderId, books);
-  } catch (error) {
-    console.error('Error saving folder books:', error);
-  }
-};
 
 /**
  * Extract metadata and cover from an EPUB file
@@ -201,9 +152,9 @@ export const extractBookInfo = async (
       }
 
       if (coverBlob) {
-        const base64Data = await blobToBase64(coverBlob);
-        result.coverUrl = base64Data;
+        result.coverBlob = coverBlob;
         // result.coverUrl = URL.createObjectURL(coverBlob);
+        // result.thumbUrl = await createThumbnail(coverBlob);
       }
     }
   } catch (error) {
@@ -215,16 +166,101 @@ export const extractBookInfo = async (
 
   // Store metadata in cache (without coverUrl as it's temporary)
   const metadataToCache = { ...result };
+  //   delete metadataToCache.coverUrl;
+  //   delete metadataToCache.thumbUrl;
   await metadataCache.setItem(fileId, metadataToCache);
 
   return result;
 };
 
+export const getMetadataById = async (
+  fileId: string,
+): Promise<BookMetadata | null> => {
+  return getMetadata({ id: fileId, name: '', mimeType: '', size: '' });
+};
+
 /**
  * Get cached book metadata
  */
-export const getCachedMetadata = async (
-  fileId: string,
+export const getMetadata = async (
+  file: DriveFile,
 ): Promise<BookMetadata | null> => {
-  return metadataCache.getItem<BookMetadata>(fileId);
+  let metadata = await metadataCache.getItem<BookMetadata>(file.id);
+  if (!metadata) {
+    const epubBlob = await downloadFile(file.id);
+    if (!epubBlob) return null;
+
+    metadata = await extractBookInfo(file.id, epubBlob);
+  }
+
+  //   if (metadata.coverBlob) {
+  //     // If we have a cached coverBlob, create a URL for it
+  //     metadata.coverUrl = URL.createObjectURL(metadata.coverBlob);
+  //     metadata.thumbUrl = await createThumbnail(metadata.coverBlob);
+  //   }
+
+  metadata.fileSize = file.size;
+  return metadata;
 };
+
+export const getBooksInFolder = async (
+  folderId: string,
+  ignoreCache = false,
+): Promise<BookMetadata[]> => {
+  const files = await listEpubFiles(folderId, ignoreCache);
+  const batchSize = 20;
+  const results: BookMetadata[] = [];
+
+  for (let i = 0; i < files.length; i += batchSize) {
+    const batch = files.slice(i, i + batchSize);
+
+    const bookPromises: Promise<BookMetadata | null>[] = batch.map(
+      async (file) => {
+        try {
+          const metadata = await getMetadata(file);
+          return metadata;
+        } catch (error) {
+          console.error('Error processing file:', file.name, error);
+          return null;
+        }
+      },
+    );
+
+    const books = await Promise.all(bookPromises);
+    results.push(...(books.filter(Boolean) as BookMetadata[]));
+  }
+
+  return results;
+};
+
+export async function createThumbnail(
+  blob: Blob,
+  maxWidth = 200,
+): Promise<string> {
+  return new Promise((resolve) => {
+    const img = new Image();
+    img.onload = () => {
+      const canvas = document.createElement('canvas');
+      const scale = maxWidth / img.width;
+      canvas.width = maxWidth;
+      canvas.height = img.height * scale;
+
+      const ctx = canvas.getContext('2d')!;
+      ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+
+      // Convert to WebP for smaller size
+      canvas.toBlob(
+        (thumbnailBlob) => {
+          if (thumbnailBlob) {
+            resolve(URL.createObjectURL(thumbnailBlob));
+          } else {
+            resolve(URL.createObjectURL(blob)); // fallback
+          }
+        },
+        'image/webp',
+        0.7, // quality
+      );
+    };
+    img.src = URL.createObjectURL(blob);
+  });
+}

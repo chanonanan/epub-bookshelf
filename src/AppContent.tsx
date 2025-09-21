@@ -1,11 +1,15 @@
 import { useNavigate, useParams, Routes, Route } from 'react-router-dom';
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useState, Suspense, lazy } from 'react';
 import localforage from 'localforage';
 import { Navbar } from './components/Navbar';
-import HomePage from './pages/HomePage';
-import BookshelfPage from './pages/BookshelfPage';
-import SeriesPage from './pages/SeriesPage';
-import BookDetailsPage from './pages/BookDetailsPage';
+
+// lazy imports (code-splitting)
+const HomePage = lazy(() => import('./pages/HomePage'));
+const BookshelfPage = lazy(
+  () => import(/* webpackPrefetch: true */ './pages/BookshelfPage'),
+);
+const SeriesPage = lazy(() => import('./pages/SeriesPage'));
+const BookDetailsPage = lazy(() => import('./pages/BookDetailsPage'));
 
 export const AppContent = () => {
   const navigate = useNavigate();
@@ -16,7 +20,6 @@ export const AppContent = () => {
   const [searchQuery, setSearchQuery] = useState('');
 
   useEffect(() => {
-    // Load recent folders from storage
     const loadRecentFolders = async () => {
       const folders =
         (await localforage.getItem<typeof recentFolders>('recentFolders')) ||
@@ -51,18 +54,23 @@ export const AppContent = () => {
         recentFolders={recentFolders}
       />
       <main className="flex-1 container-wrapper mx-auto max-w-7xl px-4">
-        <Routes>
-          <Route path="/" element={<HomePage />} />
-          <Route
-            path="/bookshelf/:folderId"
-            element={<BookshelfPage searchQuery={searchQuery} />}
-          />
-          <Route
-            path="/bookshelf/:folderId/:series"
-            element={<SeriesPage searchQuery={searchQuery} />}
-          />
-          <Route path="/book/:id" element={<BookDetailsPage />} />
-        </Routes>
+        <Suspense fallback={<div>Loading...</div>}>
+          <Routes>
+            <Route path="/" element={<HomePage />} />
+            <Route
+              path="/bookshelf/:folderId"
+              element={<BookshelfPage searchQuery={searchQuery} />}
+            />
+            <Route
+              path="/bookshelf/:folderId/:series"
+              element={<SeriesPage searchQuery={searchQuery} />}
+            />
+            <Route
+              path="/book/:folderId/:series/:id"
+              element={<BookDetailsPage />}
+            />
+          </Routes>
+        </Suspense>
       </main>
     </div>
   );

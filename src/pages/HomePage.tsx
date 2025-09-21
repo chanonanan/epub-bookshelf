@@ -37,6 +37,7 @@ export default function HomePage() {
         .slice(0, 4), // Keep last 5 folders
     ];
     await localforage.setItem('recentFolders', updatedFolders);
+    import('./BookshelfPage');
     navigate(`/bookshelf/${folderId}`);
   };
 

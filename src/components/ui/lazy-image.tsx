@@ -1,7 +1,7 @@
 import { useState, type FC } from 'react';
 
 interface LazyImageProps {
-  src: string;
+  src: Blob | undefined;
   alt: string;
   className?: string;
 }
@@ -11,11 +11,11 @@ export const LazyImage: FC<LazyImageProps> = ({ src, alt, className }) => {
   const [error, setError] = useState(false);
 
   return (
-    <div className={`relative w-full h-full ${className || ''}`}>
+    <div className={`relative w-full ${className || ''}`}>
       {isLoading && <div className="absolute inset-0 bg-muted animate-pulse" />}
       {src ? (
         <img
-          src={src}
+          src={src ? URL.createObjectURL(src) : undefined}
           alt={alt}
           loading="lazy"
           className={className}

@@ -3,11 +3,13 @@ import { useParams } from 'react-router-dom';
 import { Button } from '../components/ui/button';
 import {
   type BookMetadata,
-  getCachedMetadata,
   extractBookInfo,
+  getMetadataById,
 } from '../epubUtils';
 import { downloadFile } from '../googleDrive';
 import DOMPurify from 'dompurify';
+import { LazyImage } from '@/components/ui/lazy-image';
+import { RoutingPath } from '@/components/RoutingPath';
 
 export default function BookDetailsPage() {
   const { id } = useParams<{ id: string }>();
@@ -27,7 +29,7 @@ export default function BookDetailsPage() {
 
       try {
         // Load book metadata from cache
-        const metadata = await getCachedMetadata(id);
+        const metadata = await getMetadataById(id);
         if (!metadata) {
           setError('Book not found');
           setIsLoading(false);
@@ -105,7 +107,7 @@ export default function BookDetailsPage() {
 
   const sanitizedDescription = useMemo(() => {
     if (!book?.description) return '';
-    return DOMPurify.sanitize(book.description);
+    return DOMPurify.sanitize(book.description, { FORBID_ATTR: ['style'] });
   }, [book?.description]);
 
   if (isLoading) {
@@ -130,19 +132,14 @@ export default function BookDetailsPage() {
   return (
     <div>
       <div className="max-w-4xl mx-auto">
+        <RoutingPath />
         <div className="flex flex-col md:flex-row gap-8">
           <div className="flex-shrink-0 w-full md:w-64">
-            {book.coverUrl ? (
-              <img
-                src={book.coverUrl}
-                alt={`${book.title} cover`}
-                className="w-full aspect-[2/3] object-cover rounded-lg shadow-lg"
-              />
-            ) : (
-              <div className="w-full aspect-[2/3] bg-muted rounded-lg flex items-center justify-center text-muted-foreground">
-                No Cover
-              </div>
-            )}
+            <LazyImage
+              src={book.coverBlob}
+              alt={`${book.title} cover`}
+              className="w-full aspect-[2/3] object-cover rounded-lg shadow-lg"
+            />
             <div className="flex flex-col gap-2 mt-4">
               <Button
                 onClick={handleDownload}
@@ -166,8 +163,8 @@ export default function BookDetailsPage() {
             <h1 className="text-3xl font-bold mb-2">{book.title}</h1>
             {book.series && (
               <p className="text-lg text-muted-foreground mb-4">
-                Series: {book.series} #
-                {typeof book.seriesIndex === 'number' ? book.seriesIndex : '?'}
+                Series: {book.series}
+                {book.seriesIndex && <> #{book.seriesIndex}</>}
               </p>
             )}
             <p className="text-xl mb-6">{book.author}</p>
@@ -190,7 +187,13 @@ export default function BookDetailsPage() {
               {book.publishDate && (
                 <div>
                   <h3 className="font-semibold">Published</h3>
-                  <p>{book.publishDate}</p>
+                  <p>
+                    {new Date(book.publishDate).toLocaleDateString(undefined, {
+                      year: 'numeric',
+                      month: 'long',
+                      day: 'numeric',
+                    })}
+                  </p>
                 </div>
               )}
               {book.language && (
@@ -226,4 +229,8 @@ export default function BookDetailsPage() {
       </div>
     </div>
   );
+}
+
+function preloadSeriesPage() {
+  import('./SeriesPage');
 }

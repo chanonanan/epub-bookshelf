@@ -75,43 +75,76 @@ export const getTokens = async (): Promise<GoogleTokens | null> => {
   return tokenPromise;
 };
 
+const foldersCache = localforage.createInstance({
+  name: 'epubBookshelf',
+  storeName: 'folders',
+});
+
 /**
  * List all EPUB files in user's Drive
  */
-export const listEpubFiles = async (folderId: string): Promise<DriveFile[]> => {
+export const listEpubFiles = async (
+  folderId: string,
+  ignoreCache = false,
+): Promise<DriveFile[]> => {
+  const cacheKey = `epubFiles:${folderId}`;
+  const cachedFiles = await foldersCache.getItem<DriveFile[]>(cacheKey);
+  if (cachedFiles && !ignoreCache) return cachedFiles;
+
   const tokens = await getTokens();
   if (!tokens) return [];
 
-  const query = `'${folderId}' in parents and mimeType='application/epub+zip'`;
-  const fields = 'nextPageToken,files(id,name,mimeType,size)';
-  let allFiles: DriveFile[] = [];
-  let pageToken: string | null = null;
+  const allFiles: DriveFile[] = [];
 
-  do {
-    const url = new URL('https://www.googleapis.com/drive/v3/files');
-    url.searchParams.append('q', query);
-    url.searchParams.append('fields', fields);
-    url.searchParams.append('pageSize', '100'); // Get maximum items per request
-    if (pageToken) {
-      url.searchParams.append('pageToken', pageToken);
-    }
+  // helper to list both files & folders inside a parent
+  const fetchChildren = async (parentId: string): Promise<void> => {
+    let pageToken: string | null = null;
 
-    const response = await fetch(url.toString(), {
-      headers: {
-        Authorization: `Bearer ${tokens.access_token}`,
-      },
-    });
+    do {
+      const url = new URL('https://www.googleapis.com/drive/v3/files');
+      url.searchParams.append(
+        'q',
+        `'${parentId}' in parents and trashed=false`,
+      );
+      url.searchParams.append(
+        'fields',
+        'nextPageToken,files(id,name,mimeType,size)',
+      );
+      url.searchParams.append('pageSize', '100');
+      if (pageToken) {
+        url.searchParams.append('pageToken', pageToken);
+      }
 
-    if (!response.ok) {
-      console.error('Failed to fetch files:', response.statusText);
-      break;
-    }
+      const response = await fetch(url.toString(), {
+        headers: {
+          Authorization: `Bearer ${tokens.access_token}`,
+        },
+      });
 
-    const data = await response.json();
-    allFiles = allFiles.concat(data.files || []);
-    pageToken = data.nextPageToken || null;
-  } while (pageToken);
+      if (!response.ok) {
+        console.error('Failed to fetch files:', response.statusText);
+        break;
+      }
 
+      const data = await response.json();
+      const files: DriveFile[] = data.files || [];
+
+      for (const file of files) {
+        if (file.mimeType === 'application/vnd.google-apps.folder') {
+          // recurse into subfolder
+          await fetchChildren(file.id);
+        } else if (file.mimeType === 'application/epub+zip') {
+          allFiles.push(file);
+        }
+      }
+
+      pageToken = data.nextPageToken || null;
+    } while (pageToken);
+  };
+
+  await fetchChildren(folderId);
+
+  await foldersCache.setItem(cacheKey, allFiles);
   return allFiles;
 };
 
