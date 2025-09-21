@@ -3,7 +3,6 @@
  */
 import { type FC, useEffect, useState, useRef } from 'react';
 import { LazyImage } from './ui/lazy-image';
-import { ReaderDialog } from './ReaderDialog';
 import { listEpubFiles, downloadFile } from '../googleDrive';
 import {
   extractBookInfo,
@@ -63,8 +62,6 @@ export const Bookshelf: FC<BookshelfProps> = ({
   const [error, setError] = useState<string | null>(null);
   const gridRef = useRef<HTMLDivElement>(null);
   const selectedSeries = initialSeries;
-  const [isReaderOpen, setIsReaderOpen] = useState(false);
-  const [selectedBookId, setSelectedBookId] = useState<string | null>(null);
 
   useEffect(() => {
     // Load books when folderId changes
@@ -292,15 +289,6 @@ export const Bookshelf: FC<BookshelfProps> = ({
           </Card>
         </button>
       ))}
-
-      <ReaderDialog
-        bookId={selectedBookId}
-        isOpen={isReaderOpen}
-        onClose={() => {
-          setIsReaderOpen(false);
-          setSelectedBookId(null);
-        }}
-      />
     </div>
   );
 
@@ -364,7 +352,7 @@ export const Bookshelf: FC<BookshelfProps> = ({
           <BreadcrumbList>
             <BreadcrumbItem>
               <BreadcrumbLink asChild>
-                <Link href="/">Home</Link>
+                <Link to="/">Home</Link>
               </BreadcrumbLink>
             </BreadcrumbItem>
             <BreadcrumbSeparator />
@@ -384,7 +372,7 @@ export const Bookshelf: FC<BookshelfProps> = ({
             <BreadcrumbSeparator />
             <BreadcrumbItem>
               <BreadcrumbLink asChild>
-                <Link href="/docs/components">Components</Link>
+                <Link to="/docs/components">Components</Link>
               </BreadcrumbLink>
             </BreadcrumbItem>
             <BreadcrumbSeparator />

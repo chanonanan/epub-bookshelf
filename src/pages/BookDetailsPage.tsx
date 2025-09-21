@@ -1,7 +1,11 @@
 import { useState, useEffect, useMemo } from 'react';
 import { useParams } from 'react-router-dom';
 import { Button } from '../components/ui/button';
-import { BookMetadata, getCachedMetadata, extractBookInfo } from '../epubUtils';
+import {
+  type BookMetadata,
+  getCachedMetadata,
+  extractBookInfo,
+} from '../epubUtils';
 import { downloadFile } from '../googleDrive';
 import DOMPurify from 'dompurify';
 

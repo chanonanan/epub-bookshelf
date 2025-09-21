@@ -22,7 +22,6 @@ interface NavbarProps {
 }
 
 export const Navbar: FC<NavbarProps> = ({
-  currentFolderId,
   currentFolderName,
   onFolderSelect,
   onSearchChange,

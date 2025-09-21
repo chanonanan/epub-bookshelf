@@ -1,7 +1,7 @@
 /**
  * Helper functions for extracting EPUB metadata and covers
  */
-import epub, { Book } from 'epubjs';
+import epub from 'epubjs';
 import JSZip from 'jszip';
 import localforage from 'localforage';
 
@@ -9,7 +9,6 @@ export interface BookMetadata {
   id: string;
   title: string;
   author: string;
-  coverUrl?: string; // URL for display (object URL or data URL)
   coverUrl?: string; // Base64 encoded cover image data
   series?: string;
   seriesIndex?: number;
