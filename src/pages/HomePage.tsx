@@ -1,9 +1,9 @@
+import FolderPicker from '@/components/FolderPicker';
+import { Button } from '@/components/ui/button';
+import localforage from 'localforage';
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import localforage from 'localforage';
-import FolderPicker from '../components/FolderPicker';
 import { initializeGoogleAuth } from '../googleDrive';
-import { Button } from '../components/ui/button';
 
 export default function HomePage() {
   const [isLoading, setIsLoading] = useState(true);

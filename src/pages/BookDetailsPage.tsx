@@ -1,4 +1,7 @@
-import { useState, useEffect, useMemo } from 'react';
+import { RoutingPath } from '@/components/RoutingPath';
+import { LazyImage } from '@/components/ui/lazy-image';
+import DOMPurify from 'dompurify';
+import { useEffect, useMemo, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { Button } from '../components/ui/button';
 import {
@@ -7,9 +10,6 @@ import {
   getMetadataById,
 } from '../epubUtils';
 import { downloadFile } from '../googleDrive';
-import DOMPurify from 'dompurify';
-import { LazyImage } from '@/components/ui/lazy-image';
-import { RoutingPath } from '@/components/RoutingPath';
 
 export default function BookDetailsPage() {
   const { id } = useParams<{ id: string }>();

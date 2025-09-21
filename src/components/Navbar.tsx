@@ -1,5 +1,6 @@
+import { ChevronDown, Search } from 'lucide-react';
 import { type FC } from 'react';
-import { Search } from 'lucide-react';
+import { ModeToggle } from './ModeToggle';
 import { Button } from './ui/button';
 import {
   DropdownMenu,
@@ -8,8 +9,6 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from './ui/dropdown-menu';
-import { ChevronDown } from 'lucide-react';
-import { ModeToggle } from './ModeToggle';
 
 interface NavbarProps {
   currentFolderId?: string;

@@ -1,13 +1,11 @@
-import { useNavigate, useParams, Routes, Route } from 'react-router-dom';
-import { useCallback, useEffect, useState, Suspense, lazy } from 'react';
 import localforage from 'localforage';
+import { Suspense, lazy, useCallback, useEffect, useState } from 'react';
+import { Route, Routes, useNavigate, useParams } from 'react-router-dom';
 import { Navbar } from './components/Navbar';
 
 // lazy imports (code-splitting)
 const HomePage = lazy(() => import('./pages/HomePage'));
-const BookshelfPage = lazy(
-  () => import(/* webpackPrefetch: true */ './pages/BookshelfPage'),
-);
+const BookshelfPage = lazy(() => import('./pages/BookshelfPage'));
 const SeriesPage = lazy(() => import('./pages/SeriesPage'));
 const BookDetailsPage = lazy(() => import('./pages/BookDetailsPage'));
 

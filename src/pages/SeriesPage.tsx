@@ -1,6 +1,6 @@
-import { useParams } from 'react-router-dom';
-import { Bookshelf } from '../components/Bookshelf';
+import { Bookshelf } from '@/components/Bookshelf';
 import { RoutingPath } from '@/components/RoutingPath';
+import { useParams } from 'react-router-dom';
 
 interface SeriesPageProps {
   searchQuery?: string;

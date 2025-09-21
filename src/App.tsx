@@ -1,7 +1,7 @@
+import { ThemeProvider } from '@/components/ThemeProvider';
 import { BrowserRouter } from 'react-router-dom';
 import './App.css';
 import { AppContent } from './AppContent';
-import { ThemeProvider } from '@/components/ThemeProvider';
 
 export default function App() {
   return (

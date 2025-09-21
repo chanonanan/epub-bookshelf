@@ -1,14 +1,14 @@
+import { getMetadataById } from '@/epubUtils';
+import { useEffect, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import {
   Breadcrumb,
-  BreadcrumbList,
   BreadcrumbItem,
   BreadcrumbLink,
-  BreadcrumbSeparator,
+  BreadcrumbList,
   BreadcrumbPage,
+  BreadcrumbSeparator,
 } from './ui/breadcrumb';
-import { getMetadataById } from '@/epubUtils';
-import { useEffect, useState } from 'react';
 
 export function RoutingPath() {
   const {
@@ -22,20 +22,6 @@ export function RoutingPath() {
   }>();
   const selectedSeries = series ? decodeURIComponent(series) : null;
   const [items, setItems] = useState<{ name: string; path: string }[]>([]);
-  //   const items = [
-  //     { name: 'Home', path: '/' },
-  //     ...(folderId
-  //       ? [{ name: 'Bookshelf', path: `/bookshelf/${folderId}` }]
-  //       : []),
-  //     ...(selectedSeries
-  //       ? [
-  //           {
-  //             name: selectedSeries,
-  //             path: `/bookshelf/${folderId}/${selectedSeries}`,
-  //           },
-  //         ]
-  //       : []),
-  //   ];
 
   useEffect(() => {
     const loadBook = async () => {

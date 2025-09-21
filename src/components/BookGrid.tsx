@@ -1,14 +1,14 @@
 import type { BookMetadata } from '@/epubUtils';
-import {
-  Card,
-  CardHeader,
-  CardContent,
-  CardTitle,
-  CardDescription,
-} from './ui/card';
-import { LazyImage } from './ui/lazy-image';
 import { useNavigate, useParams } from 'react-router-dom';
 import { Badge } from './ui/badge';
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from './ui/card';
+import { LazyImage } from './ui/lazy-image';
 // import { Grid, type CellComponentProps } from 'react-window';
 
 const preloadBookDetailsPage = () => {

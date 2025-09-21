@@ -1,6 +1,3 @@
-/**
- * Helper functions for extracting EPUB metadata and covers
- */
 import epub from 'epubjs';
 import JSZip from 'jszip';
 import localforage from 'localforage';
@@ -115,7 +112,6 @@ export const extractBookInfo = async (
     let coverBlob: Blob | null = null;
 
     if (cover) {
-      // Try direct path from epub.js
       let coverEntry = epubContents.file(
         cover.startsWith('/') ? cover.slice(1) : cover,
       );
@@ -124,7 +120,6 @@ export const extractBookInfo = async (
         const coverBuffer = await coverEntry.async('arraybuffer');
         coverBlob = new Blob([coverBuffer], { type: 'image/jpeg' });
       } else if (opfEntry) {
-        // If direct path fails, try extracting cover path from OPF
         const opfContent = await opfEntry.async('text');
         const coverIdMatch = opfContent.match(
           /<meta name="cover" content="([^"]+)"/,
@@ -138,7 +133,6 @@ export const extractBookInfo = async (
 
           if (coverMatch) {
             const coverPath = coverMatch[1];
-            // Get the relative path from the OPF location
             const opfDir = opfEntry.name.split('/').slice(0, -1).join('/');
             const fullPath = opfDir ? `${opfDir}/${coverPath}` : coverPath;
             coverEntry = epubContents.file(fullPath);
@@ -153,21 +147,14 @@ export const extractBookInfo = async (
 
       if (coverBlob) {
         result.coverBlob = coverBlob;
-        // result.coverUrl = URL.createObjectURL(coverBlob);
-        // result.thumbUrl = await createThumbnail(coverBlob);
       }
     }
   } catch (error) {
     console.error('Error extracting cover:', error);
   }
 
-  // Clean up book object
   book.destroy();
-
-  // Store metadata in cache (without coverUrl as it's temporary)
   const metadataToCache = { ...result };
-  //   delete metadataToCache.coverUrl;
-  //   delete metadataToCache.thumbUrl;
   await metadataCache.setItem(fileId, metadataToCache);
 
   return result;
@@ -192,12 +179,6 @@ export const getMetadata = async (
 
     metadata = await extractBookInfo(file.id, epubBlob);
   }
-
-  //   if (metadata.coverBlob) {
-  //     // If we have a cached coverBlob, create a URL for it
-  //     metadata.coverUrl = URL.createObjectURL(metadata.coverBlob);
-  //     metadata.thumbUrl = await createThumbnail(metadata.coverBlob);
-  //   }
 
   metadata.fileSize = file.size;
   return metadata;

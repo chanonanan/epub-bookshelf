@@ -1,6 +1,3 @@
-/**
- * Helper functions for Google Drive API authentication and file operations
- */
 import localforage from 'localforage';
 
 const SCOPE = 'https://www.googleapis.com/auth/drive.readonly';

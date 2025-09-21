@@ -1,14 +1,14 @@
 import type { BookMetadata } from '@/epubUtils';
+import { useNavigate } from 'react-router-dom';
+import { Badge } from './ui/badge';
 import {
   Card,
-  CardHeader,
   CardContent,
-  CardTitle,
   CardDescription,
+  CardHeader,
+  CardTitle,
 } from './ui/card';
 import { LazyImage } from './ui/lazy-image';
-import { Badge } from './ui/badge';
-import { useNavigate } from 'react-router-dom';
 
 export interface SeriesGroup {
   name: string;

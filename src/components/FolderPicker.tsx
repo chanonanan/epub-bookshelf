@@ -1,7 +1,7 @@
-import React, { useEffect, useCallback, useState } from 'react';
+import { getTokens } from '@/googleDrive';
+import React, { useCallback, useEffect, useState } from 'react';
+import '../types/google.d';
 import { Button } from './ui/button';
-import '../types/google.d'; // Import type declarations
-import { getTokens } from '../googleDrive';
 
 interface FolderPickerProps {
   onFolderSelect: (folderId: string, folderName: string) => void;

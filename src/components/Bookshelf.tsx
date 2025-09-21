@@ -1,9 +1,8 @@
-import { type FC, useEffect, useState, useRef } from 'react';
-import { getBooksInFolder } from '../epubUtils';
-import { Button } from './ui/button';
-import { type BookMetadata } from '../epubUtils';
+import { type BookMetadata, getBooksInFolder } from '@/epubUtils';
+import { type FC, useEffect, useRef, useState } from 'react';
 import { BookGrid } from './BookGrid';
 import { SeriesGrid, type SeriesGroup } from './SeriesGrid';
+import { Button } from './ui/button';
 
 interface BookshelfProps {
   folderId: string;
