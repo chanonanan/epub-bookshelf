@@ -10,8 +10,10 @@ import { Button } from './ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from './ui/card';
 
 import { type BookMetadata } from '../epubUtils';
-import { useNavigate } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { Badge } from "@/components/ui/badge";
+import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem } from '@radix-ui/react-dropdown-menu';
+import { Breadcrumb, BreadcrumbList, BreadcrumbItem, BreadcrumbLink, BreadcrumbSeparator, BreadcrumbEllipsis, BreadcrumbPage } from './ui/breadcrumb';
 
 interface SeriesGroup {
   name: string;
@@ -22,9 +24,10 @@ interface SeriesGroup {
 interface BookshelfProps {
   folderId: string;
   initialSeries?: string;
+  searchQuery?: string;
 }
 
-export const Bookshelf: FC<BookshelfProps> = ({ folderId, initialSeries }) => {
+export const Bookshelf: FC<BookshelfProps> = ({ folderId, initialSeries, searchQuery = '' }) => {
   const navigate = useNavigate();
   const [books, setBooks] = useState<BookMetadata[]>([]);
   const [series, setSeries] = useState<SeriesGroup[]>([]);
@@ -41,6 +44,36 @@ export const Bookshelf: FC<BookshelfProps> = ({ folderId, initialSeries }) => {
       loadBooks(folderId);
     }
   }, [folderId]);
+
+  // Filter books based on search query
+  const filteredBooks = searchQuery
+    ? books.filter(book => 
+        book.title?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        book.author?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        book.series?.toLowerCase().includes(searchQuery.toLowerCase())
+      )
+    : books;
+
+  // Group filtered books by series
+  useEffect(() => {
+    const groupedSeries: { [key: string]: BookMetadata[] } = {};
+    
+    filteredBooks.forEach(book => {
+      const seriesName = book.series || 'Standalone';
+      if (!groupedSeries[seriesName]) {
+        groupedSeries[seriesName] = [];
+      }
+      groupedSeries[seriesName].push(book);
+    });
+
+    const seriesGroups = Object.entries(groupedSeries).map(([name, books]) => ({
+      name,
+      books,
+      coverUrl: books[0]?.coverUrl
+    }));
+
+    setSeries(seriesGroups);
+  }, [filteredBooks]);
 
   // Restore scroll position when changing views
   useEffect(() => {
@@ -272,7 +305,7 @@ export const Bookshelf: FC<BookshelfProps> = ({ folderId, initialSeries }) => {
   return (
     <div 
       ref={gridRef}
-      className="container mx-auto px-4 py-8 min-h-screen overflow-y-auto scroll-smooth"
+      className="container mx-auto px-4 min-h-screen overflow-y-auto scroll-smooth"
       style={{ scrollPaddingTop: '1rem' }}
     >
       <div className="mb-6 flex items-center justify-between sticky top-0 bg-background z-10 py-4">
@@ -288,6 +321,39 @@ export const Bookshelf: FC<BookshelfProps> = ({ folderId, initialSeries }) => {
           )}
           <h2 className="text-2xl font-bold">{selectedSeries || 'All Series'}</h2>
         </div>
+        <Breadcrumb>
+      <BreadcrumbList>
+        <BreadcrumbItem>
+          <BreadcrumbLink asChild>
+            <Link href="/">Home</Link>
+          </BreadcrumbLink>
+        </BreadcrumbItem>
+        <BreadcrumbSeparator />
+        <BreadcrumbItem>
+          <DropdownMenu>
+            <DropdownMenuTrigger className="flex items-center gap-1">
+              <BreadcrumbEllipsis className="size-4" />
+              <span className="sr-only">Toggle menu</span>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="start">
+              <DropdownMenuItem>Documentation</DropdownMenuItem>
+              <DropdownMenuItem>Themes</DropdownMenuItem>
+              <DropdownMenuItem>GitHub</DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+        </BreadcrumbItem>
+        <BreadcrumbSeparator />
+        <BreadcrumbItem>
+          <BreadcrumbLink asChild>
+            <Link href="/docs/components">Components</Link>
+          </BreadcrumbLink>
+        </BreadcrumbItem>
+        <BreadcrumbSeparator />
+        <BreadcrumbItem>
+          <BreadcrumbPage>Breadcrumb</BreadcrumbPage>
+        </BreadcrumbItem>
+      </BreadcrumbList>
+    </Breadcrumb>
       </div>
       {selectedSeries ? (
         renderBookGrid(series.find(s => s.name === selectedSeries)?.books || [])

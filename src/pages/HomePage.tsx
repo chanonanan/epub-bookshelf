@@ -1,5 +1,6 @@
 import { useState } from 'react';
-import { Navigate, useNavigate } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
+import localforage from 'localforage';
 import FolderPicker from '../components/FolderPicker';
 import { initializeGoogleAuth } from '../googleDrive';
 import { Button } from '../components/ui/button';
@@ -24,7 +25,13 @@ export default function HomePage() {
     init();
   });
 
-  const handleFolderSelect = (folderId: string) => {
+  const handleFolderSelect = async (folderId: string, name: string) => {
+    const recentFolders = await localforage.getItem<Array<{ id: string; name: string; lastUpdate: string }>>('recentFolders') || [];
+    const updatedFolders = [
+      { id: folderId, name, lastUpdate: new Date().toISOString() },
+      ...recentFolders.filter((f: { id: string }) => f.id !== folderId).slice(0, 4) // Keep last 5 folders
+    ];
+    await localforage.setItem('recentFolders', updatedFolders);
     navigate(`/bookshelf/${folderId}`);
   };
 

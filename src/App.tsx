@@ -1,21 +1,14 @@
-import { BrowserRouter, Route, Routes } from 'react-router-dom';
-import HomePage from './pages/HomePage';
-import BookshelfPage from './pages/BookshelfPage';
-import SeriesPage from './pages/SeriesPage';
-import BookDetailsPage from './pages/BookDetailsPage';
+import { BrowserRouter } from 'react-router-dom';
 import './App.css';
+import { AppContent } from './AppContent';
+import { ThemeProvider } from "@/components/ThemeProvider";
 
-function App() {
+export default function App() {
   return (
-    <BrowserRouter>
-      <Routes>
-        <Route path="/" element={<HomePage />} />
-        <Route path="/bookshelf/:folderId" element={<BookshelfPage />} />
-        <Route path="/bookshelf/:folderId/:series" element={<SeriesPage />} />
-        <Route path="/book/:id" element={<BookDetailsPage />} />
-      </Routes>
-    </BrowserRouter>
+    <ThemeProvider defaultTheme="dark" storageKey="vite-ui-theme">
+      <BrowserRouter>
+        <AppContent />
+      </BrowserRouter>
+    </ThemeProvider>
   );
-}
-
-export default App;
+};

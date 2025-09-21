@@ -1,8 +1,11 @@
 import { useParams } from 'react-router-dom';
 import { Bookshelf } from '../components/Bookshelf';
-import FolderPicker from '../components/FolderPicker';
 
-export default function SeriesPage() {
+interface SeriesPageProps {
+  searchQuery?: string;
+}
+
+export default function SeriesPage({ searchQuery }: SeriesPageProps) {
   const { folderId, series } = useParams<{ folderId: string; series: string }>();
 
   if (!folderId) {
@@ -10,17 +13,12 @@ export default function SeriesPage() {
   }
 
   return (
-    <div className="min-h-screen bg-background">
-      <div className="container mx-auto px-4 py-4">
-        <div className="flex justify-between items-center mb-4">
-          <h1 className="text-2xl font-bold">{decodeURIComponent(series || '')}</h1>
-          <FolderPicker 
-            onFolderSelect={(newFolderId) => window.location.href = `/bookshelf/${newFolderId}`}
-            apiKey={import.meta.env.VITE_GOOGLE_API_KEY}
-          />
-        </div>
-        <Bookshelf folderId={folderId} initialSeries={decodeURIComponent(series || '')} />
-      </div>
+    <div className="bg-background">
+      <Bookshelf 
+        folderId={folderId} 
+        initialSeries={decodeURIComponent(series || '')} 
+        searchQuery={searchQuery} 
+      />
     </div>
   );
 }
