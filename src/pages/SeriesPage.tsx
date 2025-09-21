@@ -6,7 +6,10 @@ interface SeriesPageProps {
 }
 
 export default function SeriesPage({ searchQuery }: SeriesPageProps) {
-  const { folderId, series } = useParams<{ folderId: string; series: string }>();
+  const { folderId, series } = useParams<{
+    folderId: string;
+    series: string;
+  }>();
 
   if (!folderId) {
     return <div>Invalid folder ID</div>;
@@ -14,10 +17,10 @@ export default function SeriesPage({ searchQuery }: SeriesPageProps) {
 
   return (
     <div className="bg-background">
-      <Bookshelf 
-        folderId={folderId} 
-        initialSeries={decodeURIComponent(series || '')} 
-        searchQuery={searchQuery} 
+      <Bookshelf
+        folderId={folderId}
+        initialSeries={decodeURIComponent(series || '')}
+        searchQuery={searchQuery}
       />
     </div>
   );

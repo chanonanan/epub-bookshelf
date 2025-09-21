@@ -1,7 +1,7 @@
 import { BrowserRouter } from 'react-router-dom';
 import './App.css';
 import { AppContent } from './AppContent';
-import { ThemeProvider } from "@/components/ThemeProvider";
+import { ThemeProvider } from '@/components/ThemeProvider';
 
 export default function App() {
   return (
@@ -11,4 +11,4 @@ export default function App() {
       </BrowserRouter>
     </ThemeProvider>
   );
-};
+}

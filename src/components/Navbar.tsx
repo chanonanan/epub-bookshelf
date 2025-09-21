@@ -37,7 +37,8 @@ export const Navbar: FC<NavbarProps> = ({
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button variant="ghost" className="gap-2">
-                {currentFolderName || 'Select Folder'} <ChevronDown className="h-4 w-4" />
+                {currentFolderName || 'Select Folder'}{' '}
+                <ChevronDown className="h-4 w-4" />
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="start" className="w-[240px]">

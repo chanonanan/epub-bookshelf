@@ -9,8 +9,8 @@ export interface BookMetadata {
   id: string;
   title: string;
   author: string;
-  coverUrl?: string;      // URL for display (object URL or data URL)
-  coverUrl?: string;     // Base64 encoded cover image data
+  coverUrl?: string; // URL for display (object URL or data URL)
+  coverUrl?: string; // Base64 encoded cover image data
   series?: string;
   seriesIndex?: number;
   tags: string[];
@@ -51,7 +51,9 @@ const folderMetadataCache = localforage.createInstance({
 /**
  * Get all cached book metadata for a folder
  */
-export const getCachedFolderBooks = async (folderId: string): Promise<BookMetadata[]> => {
+export const getCachedFolderBooks = async (
+  folderId: string,
+): Promise<BookMetadata[]> => {
   try {
     const cached = await folderMetadataCache.getItem<BookMetadata[]>(folderId);
     if (!cached) return [];
@@ -66,7 +68,10 @@ export const getCachedFolderBooks = async (folderId: string): Promise<BookMetada
 /**
  * Save book metadata for a folder to cache
  */
-export const saveFolderBooks = async (folderId: string, books: BookMetadata[]): Promise<void> => {
+export const saveFolderBooks = async (
+  folderId: string,
+  books: BookMetadata[],
+): Promise<void> => {
   try {
     // Store books with all metadata including coverUrl
     await folderMetadataCache.setItem(folderId, books);
@@ -78,7 +83,10 @@ export const saveFolderBooks = async (folderId: string, books: BookMetadata[]): 
 /**
  * Extract metadata and cover from an EPUB file
  */
-export const extractBookInfo = async (fileId: string, epubBlob: Blob): Promise<BookMetadata> => {
+export const extractBookInfo = async (
+  fileId: string,
+  epubBlob: Blob,
+): Promise<BookMetadata> => {
   // Convert Blob to ArrayBuffer
   const arrayBuffer = await epubBlob.arrayBuffer();
 
@@ -118,9 +126,11 @@ export const extractBookInfo = async (fileId: string, epubBlob: Blob): Promise<B
 
   if (opfEntry) {
     const opfContent = await opfEntry.async('text');
-    
+
     // Extract Calibre metadata from meta tags
-    const metaMatches = opfContent.matchAll(/<meta[^>]+name="([^"]+)"[^>]+content="([^"]+)"/g);
+    const metaMatches = opfContent.matchAll(
+      /<meta[^>]+name="([^"]+)"[^>]+content="([^"]+)"/g,
+    );
     for (const match of metaMatches) {
       const [, name, content] = match;
       if (name.startsWith('calibre:')) {
@@ -140,7 +150,9 @@ export const extractBookInfo = async (fileId: string, epubBlob: Blob): Promise<B
     }
 
     // Also check dc:subject tags
-    const subjectMatches = opfContent.matchAll(/<dc:subject[^>]*>([^<]+)<\/dc:subject>/g);
+    const subjectMatches = opfContent.matchAll(
+      /<dc:subject[^>]*>([^<]+)<\/dc:subject>/g,
+    );
     for (const match of subjectMatches) {
       const subject = match[1];
       result.tags.push(subject);
@@ -154,27 +166,33 @@ export const extractBookInfo = async (fileId: string, epubBlob: Blob): Promise<B
 
     if (cover) {
       // Try direct path from epub.js
-      let coverEntry = epubContents.file(cover.startsWith('/') ? cover.slice(1) : cover);
-      
+      let coverEntry = epubContents.file(
+        cover.startsWith('/') ? cover.slice(1) : cover,
+      );
+
       if (coverEntry) {
         const coverBuffer = await coverEntry.async('arraybuffer');
         coverBlob = new Blob([coverBuffer], { type: 'image/jpeg' });
       } else if (opfEntry) {
         // If direct path fails, try extracting cover path from OPF
         const opfContent = await opfEntry.async('text');
-        const coverIdMatch = opfContent.match(/<meta name="cover" content="([^"]+)"/);
-        
+        const coverIdMatch = opfContent.match(
+          /<meta name="cover" content="([^"]+)"/,
+        );
+
         if (coverIdMatch) {
           const coverId = coverIdMatch[1];
-          const coverMatch = opfContent.match(new RegExp(`<item[^>]+id="${coverId}"[^>]+href="([^"]+)"`));
-          
+          const coverMatch = opfContent.match(
+            new RegExp(`<item[^>]+id="${coverId}"[^>]+href="([^"]+)"`),
+          );
+
           if (coverMatch) {
             const coverPath = coverMatch[1];
             // Get the relative path from the OPF location
             const opfDir = opfEntry.name.split('/').slice(0, -1).join('/');
             const fullPath = opfDir ? `${opfDir}/${coverPath}` : coverPath;
             coverEntry = epubContents.file(fullPath);
-            
+
             if (coverEntry) {
               const coverBuffer = await coverEntry.async('arraybuffer');
               coverBlob = new Blob([coverBuffer], { type: 'image/jpeg' });
@@ -203,11 +221,11 @@ export const extractBookInfo = async (fileId: string, epubBlob: Blob): Promise<B
   return result;
 };
 
-
-
 /**
  * Get cached book metadata
  */
-export const getCachedMetadata = async (fileId: string): Promise<BookMetadata | null> => {
+export const getCachedMetadata = async (
+  fileId: string,
+): Promise<BookMetadata | null> => {
   return metadataCache.getItem<BookMetadata>(fileId);
 };

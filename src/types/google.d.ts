@@ -13,7 +13,9 @@ declare global {
     addView: (view: GoogleDocsView) => GooglePickerBuilder;
     setOAuthToken: (token: string) => GooglePickerBuilder;
     setDeveloperKey: (key: string) => GooglePickerBuilder;
-    setCallback: (callback: (data: GooglePickerResponse) => void) => GooglePickerBuilder;
+    setCallback: (
+      callback: (data: GooglePickerResponse) => void,
+    ) => GooglePickerBuilder;
     build: () => GooglePicker;
   }
 
@@ -33,6 +35,41 @@ declare global {
     DocsView: new () => GoogleDocsView;
     PickerBuilder: new () => GooglePickerBuilder;
     Action: GooglePickerAction;
+  }
+
+  interface GoogleTokens {
+    access_token: string;
+    expires_at: number;
+  }
+
+  interface DriveFile {
+    id: string;
+    name: string;
+    mimeType: string;
+    size: string;
+  }
+
+  interface TokenResponse {
+    access_token: string;
+    expires_in: number;
+    error?: string;
+  }
+
+  interface GoogleIdentityServices {
+    accounts: {
+      oauth2: {
+        initTokenClient(config: {
+          client_id: string;
+          scope: string;
+          callback: (response: TokenResponse) => void;
+          prompt?: string;
+          auto_select?: boolean;
+        }): {
+          requestAccessToken(): void;
+          callback: (response: TokenResponse) => void;
+        };
+      };
+    };
   }
 
   interface Window {

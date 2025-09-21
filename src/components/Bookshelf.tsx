@@ -5,15 +5,39 @@ import { type FC, useEffect, useState, useRef } from 'react';
 import { LazyImage } from './ui/lazy-image';
 import { ReaderDialog } from './ReaderDialog';
 import { listEpubFiles, downloadFile } from '../googleDrive';
-import { extractBookInfo, getCachedMetadata, getCachedFolderBooks, saveFolderBooks } from '../epubUtils';
+import {
+  extractBookInfo,
+  getCachedMetadata,
+  getCachedFolderBooks,
+  saveFolderBooks,
+} from '../epubUtils';
 import { Button } from './ui/button';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from './ui/card';
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+  CardDescription,
+} from './ui/card';
 
 import { type BookMetadata } from '../epubUtils';
 import { Link, useNavigate } from 'react-router-dom';
-import { Badge } from "@/components/ui/badge";
-import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem } from '@radix-ui/react-dropdown-menu';
-import { Breadcrumb, BreadcrumbList, BreadcrumbItem, BreadcrumbLink, BreadcrumbSeparator, BreadcrumbEllipsis, BreadcrumbPage } from './ui/breadcrumb';
+import { Badge } from '@/components/ui/badge';
+import {
+  DropdownMenu,
+  DropdownMenuTrigger,
+  DropdownMenuContent,
+  DropdownMenuItem,
+} from '@radix-ui/react-dropdown-menu';
+import {
+  Breadcrumb,
+  BreadcrumbList,
+  BreadcrumbItem,
+  BreadcrumbLink,
+  BreadcrumbSeparator,
+  BreadcrumbEllipsis,
+  BreadcrumbPage,
+} from './ui/breadcrumb';
 
 interface SeriesGroup {
   name: string;
@@ -27,7 +51,11 @@ interface BookshelfProps {
   searchQuery?: string;
 }
 
-export const Bookshelf: FC<BookshelfProps> = ({ folderId, initialSeries, searchQuery = '' }) => {
+export const Bookshelf: FC<BookshelfProps> = ({
+  folderId,
+  initialSeries,
+  searchQuery = '',
+}) => {
   const navigate = useNavigate();
   const [books, setBooks] = useState<BookMetadata[]>([]);
   const [series, setSeries] = useState<SeriesGroup[]>([]);
@@ -47,18 +75,19 @@ export const Bookshelf: FC<BookshelfProps> = ({ folderId, initialSeries, searchQ
 
   // Filter books based on search query
   const filteredBooks = searchQuery
-    ? books.filter(book => 
-        book.title?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        book.author?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        book.series?.toLowerCase().includes(searchQuery.toLowerCase())
+    ? books.filter(
+        (book) =>
+          book.title?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+          book.author?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+          book.series?.toLowerCase().includes(searchQuery.toLowerCase()),
       )
     : books;
 
   // Group filtered books by series
   useEffect(() => {
     const groupedSeries: { [key: string]: BookMetadata[] } = {};
-    
-    filteredBooks.forEach(book => {
+
+    filteredBooks.forEach((book) => {
       const seriesName = book.series || 'Standalone';
       if (!groupedSeries[seriesName]) {
         groupedSeries[seriesName] = [];
@@ -69,7 +98,7 @@ export const Bookshelf: FC<BookshelfProps> = ({ folderId, initialSeries, searchQ
     const seriesGroups = Object.entries(groupedSeries).map(([name, books]) => ({
       name,
       books,
-      coverUrl: books[0]?.coverUrl
+      coverUrl: books[0]?.coverUrl,
     }));
 
     setSeries(seriesGroups);
@@ -80,13 +109,13 @@ export const Bookshelf: FC<BookshelfProps> = ({ folderId, initialSeries, searchQ
     if (gridRef.current) {
       const scrollKey = `bookshelf-scroll-${folderId}-${initialSeries || 'all'}`;
       const savedScrollTop = sessionStorage.getItem(scrollKey);
-      
+
       if (savedScrollTop) {
         // Delay scroll restoration to ensure content is rendered
         setTimeout(() => {
           gridRef.current?.scrollTo({
             top: Number(savedScrollTop),
-            behavior: 'instant'
+            behavior: 'instant',
           });
         }, 0);
       }
@@ -112,7 +141,7 @@ export const Bookshelf: FC<BookshelfProps> = ({ folderId, initialSeries, searchQ
     const standaloneBooks: BookMetadata[] = [];
 
     // Group books by series
-    books.forEach(book => {
+    books.forEach((book) => {
       if (book.series) {
         const seriesBooks = seriesMap.get(book.series) || [];
         seriesBooks.push(book);
@@ -123,14 +152,18 @@ export const Bookshelf: FC<BookshelfProps> = ({ folderId, initialSeries, searchQ
     });
 
     // Convert map to array and sort books within series
-    const seriesGroups: SeriesGroup[] = Array.from(seriesMap.entries()).map(([name, books]) => ({
-      name,
-      books: books.sort((a, b) => (a.seriesIndex || 0) - (b.seriesIndex || 0)),
-      coverUrl: books[0]?.coverUrl,
-    }));
+    const seriesGroups: SeriesGroup[] = Array.from(seriesMap.entries()).map(
+      ([name, books]) => ({
+        name,
+        books: books.sort(
+          (a, b) => (a.seriesIndex || 0) - (b.seriesIndex || 0),
+        ),
+        coverUrl: books[0]?.coverUrl,
+      }),
+    );
 
     // Add standalone books as individual "series"
-    standaloneBooks.forEach(book => {
+    standaloneBooks.forEach((book) => {
       seriesGroups.push({
         name: book.title,
         books: [book],
@@ -156,49 +189,51 @@ export const Bookshelf: FC<BookshelfProps> = ({ folderId, initialSeries, searchQ
 
       // Get list of EPUB files from Drive and process in background
       const files = await listEpubFiles(folderId);
-      
+
       // Process each file
-      const bookPromises: Promise<BookMetadata | null>[] = files.map(async (file) => {
-        try {
-          // Check cache first
-          const cachedMetadata = await getCachedMetadata(file.id);
-          
-          if (cachedMetadata) {
+      const bookPromises: Promise<BookMetadata | null>[] = files.map(
+        async (file) => {
+          try {
+            // Check cache first
+            const cachedMetadata = await getCachedMetadata(file.id);
+
+            if (cachedMetadata) {
+              return {
+                ...cachedMetadata,
+                fileSize: file.size,
+              };
+            }
+
+            // Download and process if not cached
+            const epubBlob = await downloadFile(file.id);
+            if (!epubBlob) return null;
+
+            // Extract metadata and cover, then immediately clear the blob
+            const metadata = await extractBookInfo(file.id, epubBlob);
             return {
-              ...cachedMetadata,
+              ...metadata,
               fileSize: file.size,
             };
+          } catch (error) {
+            console.error('Error processing file:', file.name, error);
+            return null;
           }
-
-          // Download and process if not cached
-          const epubBlob = await downloadFile(file.id);
-          if (!epubBlob) return null;
-
-          // Extract metadata and cover, then immediately clear the blob
-          const metadata = await extractBookInfo(file.id, epubBlob);
-          return {
-            ...metadata,
-            fileSize: file.size,
-          };
-        } catch (error) {
-          console.error('Error processing file:', file.name, error);
-          return null;
-        }
-      });
+        },
+      );
 
       const bookResults = await Promise.all(bookPromises);
-      const newBooks = bookResults.filter((book): book is BookMetadata => 
-        book !== null && 
-        typeof book.id === 'string' &&
-        typeof book.title === 'string' &&
-        typeof book.author === 'string' &&
-        Array.isArray(book.tags)
+      const newBooks = bookResults.filter(
+        (book): book is BookMetadata =>
+          book !== null &&
+          typeof book.id === 'string' &&
+          typeof book.title === 'string' &&
+          typeof book.author === 'string' &&
+          Array.isArray(book.tags),
       );
 
       // Save to folder cache
       await saveFolderBooks(folderId, newBooks);
       setBooks(newBooks);
-      
     } catch (err) {
       setError('Failed to load books. Please try again.');
       console.error('Error loading books:', err);
@@ -206,8 +241,6 @@ export const Bookshelf: FC<BookshelfProps> = ({ folderId, initialSeries, searchQ
       setLoading(false);
     }
   };
-
-
 
   if (loading) {
     return (
@@ -248,7 +281,9 @@ export const Bookshelf: FC<BookshelfProps> = ({ folderId, initialSeries, searchQ
             </CardHeader>
             <CardContent className="p-4">
               <CardTitle className="line-clamp-2 text-base mb-1">
-                {book.series ? `${book.title} (#${typeof book.seriesIndex === 'number' ? book.seriesIndex : '?'})` : book.title}
+                {book.series
+                  ? `${book.title} (#${typeof book.seriesIndex === 'number' ? book.seriesIndex : '?'})`
+                  : book.title}
               </CardTitle>
               <CardDescription className="line-clamp-1">
                 {book.author}
@@ -275,7 +310,9 @@ export const Bookshelf: FC<BookshelfProps> = ({ folderId, initialSeries, searchQ
         <Card
           key={group.name}
           className="hover:bg-accent transition-colors cursor-pointer relative"
-          onClick={() => navigate(`/bookshelf/${folderId}/${encodeURIComponent(group.name)}`)}
+          onClick={() =>
+            navigate(`/bookshelf/${folderId}/${encodeURIComponent(group.name)}`)
+          }
         >
           <CardHeader className="p-0">
             <div className="relative w-full aspect-[2/3] bg-muted rounded-t-lg overflow-hidden">
@@ -303,7 +340,7 @@ export const Bookshelf: FC<BookshelfProps> = ({ folderId, initialSeries, searchQ
   );
 
   return (
-    <div 
+    <div
       ref={gridRef}
       className="container mx-auto px-4 min-h-screen overflow-y-auto scroll-smooth"
       style={{ scrollPaddingTop: '1rem' }}
@@ -319,47 +356,49 @@ export const Bookshelf: FC<BookshelfProps> = ({ folderId, initialSeries, searchQ
               ← Back to All Series
             </Button>
           )}
-          <h2 className="text-2xl font-bold">{selectedSeries || 'All Series'}</h2>
+          <h2 className="text-2xl font-bold">
+            {selectedSeries || 'All Series'}
+          </h2>
         </div>
         <Breadcrumb>
-      <BreadcrumbList>
-        <BreadcrumbItem>
-          <BreadcrumbLink asChild>
-            <Link href="/">Home</Link>
-          </BreadcrumbLink>
-        </BreadcrumbItem>
-        <BreadcrumbSeparator />
-        <BreadcrumbItem>
-          <DropdownMenu>
-            <DropdownMenuTrigger className="flex items-center gap-1">
-              <BreadcrumbEllipsis className="size-4" />
-              <span className="sr-only">Toggle menu</span>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="start">
-              <DropdownMenuItem>Documentation</DropdownMenuItem>
-              <DropdownMenuItem>Themes</DropdownMenuItem>
-              <DropdownMenuItem>GitHub</DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
-        </BreadcrumbItem>
-        <BreadcrumbSeparator />
-        <BreadcrumbItem>
-          <BreadcrumbLink asChild>
-            <Link href="/docs/components">Components</Link>
-          </BreadcrumbLink>
-        </BreadcrumbItem>
-        <BreadcrumbSeparator />
-        <BreadcrumbItem>
-          <BreadcrumbPage>Breadcrumb</BreadcrumbPage>
-        </BreadcrumbItem>
-      </BreadcrumbList>
-    </Breadcrumb>
+          <BreadcrumbList>
+            <BreadcrumbItem>
+              <BreadcrumbLink asChild>
+                <Link href="/">Home</Link>
+              </BreadcrumbLink>
+            </BreadcrumbItem>
+            <BreadcrumbSeparator />
+            <BreadcrumbItem>
+              <DropdownMenu>
+                <DropdownMenuTrigger className="flex items-center gap-1">
+                  <BreadcrumbEllipsis className="size-4" />
+                  <span className="sr-only">Toggle menu</span>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="start">
+                  <DropdownMenuItem>Documentation</DropdownMenuItem>
+                  <DropdownMenuItem>Themes</DropdownMenuItem>
+                  <DropdownMenuItem>GitHub</DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            </BreadcrumbItem>
+            <BreadcrumbSeparator />
+            <BreadcrumbItem>
+              <BreadcrumbLink asChild>
+                <Link href="/docs/components">Components</Link>
+              </BreadcrumbLink>
+            </BreadcrumbItem>
+            <BreadcrumbSeparator />
+            <BreadcrumbItem>
+              <BreadcrumbPage>Breadcrumb</BreadcrumbPage>
+            </BreadcrumbItem>
+          </BreadcrumbList>
+        </Breadcrumb>
       </div>
-      {selectedSeries ? (
-        renderBookGrid(series.find(s => s.name === selectedSeries)?.books || [])
-      ) : (
-        renderSeriesGrid()
-      )}
+      {selectedSeries
+        ? renderBookGrid(
+            series.find((s) => s.name === selectedSeries)?.books || [],
+          )
+        : renderSeriesGrid()}
     </div>
   );
 };

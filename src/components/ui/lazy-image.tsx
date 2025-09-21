@@ -12,9 +12,7 @@ export const LazyImage: FC<LazyImageProps> = ({ src, alt, className }) => {
 
   return (
     <div className={`relative w-full h-full ${className || ''}`}>
-      {isLoading && (
-        <div className="absolute inset-0 bg-muted animate-pulse" />
-      )}
+      {isLoading && <div className="absolute inset-0 bg-muted animate-pulse" />}
       {src ? (
         <img
           src={src}
@@ -28,7 +26,7 @@ export const LazyImage: FC<LazyImageProps> = ({ src, alt, className }) => {
           }}
           style={{
             opacity: isLoading ? 0 : 1,
-            transition: 'opacity 0.2s ease-in-out'
+            transition: 'opacity 0.2s ease-in-out',
           }}
         />
       ) : null}

@@ -26,10 +26,15 @@ export default function HomePage() {
   });
 
   const handleFolderSelect = async (folderId: string, name: string) => {
-    const recentFolders = await localforage.getItem<Array<{ id: string; name: string; lastUpdate: string }>>('recentFolders') || [];
+    const recentFolders =
+      (await localforage.getItem<
+        Array<{ id: string; name: string; lastUpdate: string }>
+      >('recentFolders')) || [];
     const updatedFolders = [
       { id: folderId, name, lastUpdate: new Date().toISOString() },
-      ...recentFolders.filter((f: { id: string }) => f.id !== folderId).slice(0, 4) // Keep last 5 folders
+      ...recentFolders
+        .filter((f: { id: string }) => f.id !== folderId)
+        .slice(0, 4), // Keep last 5 folders
     ];
     await localforage.setItem('recentFolders', updatedFolders);
     navigate(`/bookshelf/${folderId}`);
@@ -58,8 +63,10 @@ export default function HomePage() {
     <div className="min-h-screen bg-background">
       <div className="flex flex-col items-center justify-center min-h-screen gap-4">
         <h2 className="text-2xl font-bold">Welcome to EPUB Bookshelf</h2>
-        <p className="text-muted-foreground mb-4">Please select a folder containing your EPUB files</p>
-        <FolderPicker 
+        <p className="text-muted-foreground mb-4">
+          Please select a folder containing your EPUB files
+        </p>
+        <FolderPicker
           onFolderSelect={handleFolderSelect}
           apiKey={import.meta.env.VITE_GOOGLE_API_KEY}
         />

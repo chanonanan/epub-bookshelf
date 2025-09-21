@@ -44,16 +44,16 @@ export default function BookDetailsPage() {
 
   const handleRefresh = async () => {
     if (!book?.id) return;
-    
+
     setIsRefreshing(true);
     setError(null);
-    
+
     try {
       const blob = await downloadFile(book.id);
       if (!blob) {
         throw new Error('Failed to download EPUB file');
       }
-      
+
       const freshMetadata = await extractBookInfo(book.id, blob);
       setBook(freshMetadata);
     } catch (err) {
@@ -162,7 +162,8 @@ export default function BookDetailsPage() {
             <h1 className="text-3xl font-bold mb-2">{book.title}</h1>
             {book.series && (
               <p className="text-lg text-muted-foreground mb-4">
-                Series: {book.series} #{typeof book.seriesIndex === 'number' ? book.seriesIndex : '?'}
+                Series: {book.series} #
+                {typeof book.seriesIndex === 'number' ? book.seriesIndex : '?'}
               </p>
             )}
             <p className="text-xl mb-6">{book.author}</p>

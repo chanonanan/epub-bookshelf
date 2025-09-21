@@ -3,51 +3,12 @@
  */
 import localforage from 'localforage';
 
-interface GoogleTokens {
-  access_token: string;
-  expires_at: number;
-}
-
-interface DriveFile {
-  id: string;
-  name: string;
-  mimeType: string;
-  size: string;
-}
-
-interface TokenResponse {
-  access_token: string;
-  expires_in: number;
-  error?: string;
-}
-
-interface GoogleIdentityServices {
-  accounts: {
-    oauth2: {
-      initTokenClient(config: {
-        client_id: string;
-        scope: string;
-        callback: (response: TokenResponse) => void;
-        prompt?: string;
-        auto_select?: boolean;
-      }): {
-        requestAccessToken(): void;
-        callback: (response: TokenResponse) => void;
-      };
-    };
-  };
-}
-
-declare global {
-  interface Window {
-    google: GoogleIdentityServices;
-  }
-}
-
 const SCOPE = 'https://www.googleapis.com/auth/drive.readonly';
 const CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID;
 
-let client: ReturnType<typeof window.google.accounts.oauth2.initTokenClient> | null = null;
+let client: ReturnType<
+  typeof window.google.accounts.oauth2.initTokenClient
+> | null = null;
 
 let tokenPromise: Promise<GoogleTokens | null> | null = null;
 
@@ -75,7 +36,7 @@ export const initializeGoogleAuth = async (): Promise<void> => {
             // Store tokens
             const tokens: GoogleTokens = {
               access_token: response.access_token,
-              expires_at: Date.now() + (response.expires_in * 1000)
+              expires_at: Date.now() + response.expires_in * 1000,
             };
             localforage.setItem('google_tokens', tokens);
             tokenPromise = Promise.resolve(tokens);
@@ -84,7 +45,8 @@ export const initializeGoogleAuth = async (): Promise<void> => {
         });
 
         // Check if we have cached tokens
-        const cachedTokens = await localforage.getItem<GoogleTokens>('google_tokens');
+        const cachedTokens =
+          await localforage.getItem<GoogleTokens>('google_tokens');
         if (cachedTokens && cachedTokens.expires_at > Date.now()) {
           tokenPromise = Promise.resolve(cachedTokens);
           resolve();
@@ -97,7 +59,8 @@ export const initializeGoogleAuth = async (): Promise<void> => {
         reject(err);
       }
     };
-    script.onerror = () => reject(new Error('Failed to load Google Identity Services'));
+    script.onerror = () =>
+      reject(new Error('Failed to load Google Identity Services'));
     document.head.appendChild(script);
   });
 };
@@ -123,7 +86,7 @@ export const listEpubFiles = async (folderId: string): Promise<DriveFile[]> => {
   const fields = 'nextPageToken,files(id,name,mimeType,size)';
   let allFiles: DriveFile[] = [];
   let pageToken: string | null = null;
-  
+
   do {
     const url = new URL('https://www.googleapis.com/drive/v3/files');
     url.searchParams.append('q', query);
@@ -143,7 +106,7 @@ export const listEpubFiles = async (folderId: string): Promise<DriveFile[]> => {
       console.error('Failed to fetch files:', response.statusText);
       break;
     }
-  
+
     const data = await response.json();
     allFiles = allFiles.concat(data.files || []);
     pageToken = data.nextPageToken || null;
@@ -165,11 +128,11 @@ export const downloadFile = async (fileId: string): Promise<Blob | null> => {
       headers: {
         Authorization: `Bearer ${tokens.access_token}`,
       },
-    }
+    },
   );
 
   if (!response.ok) return null;
-  
+
   return response.blob();
 };
 
@@ -181,7 +144,8 @@ const _refreshTokens = async (): Promise<GoogleTokens | null> => {
     }
 
     // Check cache first
-    const cachedTokens = await localforage.getItem<GoogleTokens>('google_tokens');
+    const cachedTokens =
+      await localforage.getItem<GoogleTokens>('google_tokens');
     if (cachedTokens && cachedTokens.expires_at > Date.now()) {
       return cachedTokens;
     }
@@ -197,7 +161,7 @@ const _refreshTokens = async (): Promise<GoogleTokens | null> => {
 
           const tokens: GoogleTokens = {
             access_token: response.access_token,
-            expires_at: Date.now() + (response.expires_in * 1000)
+            expires_at: Date.now() + response.expires_in * 1000,
           };
           localforage.setItem('google_tokens', tokens);
           resolve(tokens);

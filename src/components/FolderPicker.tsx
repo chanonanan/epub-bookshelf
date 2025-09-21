@@ -1,6 +1,6 @@
 import React, { useEffect, useCallback, useState } from 'react';
 import { Button } from './ui/button';
-import '../types/google-picker.d'; // Import type declarations
+import '../types/google.d'; // Import type declarations
 import { getTokens } from '../googleDrive';
 
 interface FolderPickerProps {
@@ -13,7 +13,10 @@ const getGooglePicker = (): GooglePickerNamespace => {
   return (window.google as unknown as { picker: GooglePickerNamespace }).picker;
 };
 
-const FolderPicker: React.FC<FolderPickerProps> = ({ onFolderSelect, apiKey }) => {
+const FolderPicker: React.FC<FolderPickerProps> = ({
+  onFolderSelect,
+  apiKey,
+}) => {
   const [isPickerLoaded, setIsPickerLoaded] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
 
@@ -36,7 +39,7 @@ const FolderPicker: React.FC<FolderPickerProps> = ({ onFolderSelect, apiKey }) =
   useEffect(() => {
     console.log('FolderPicker mounted, initializing...');
     loadPicker();
-    
+
     // Cleanup function
     return () => {
       console.log('FolderPicker unmounted');

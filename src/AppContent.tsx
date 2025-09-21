@@ -10,27 +10,34 @@ import BookDetailsPage from './pages/BookDetailsPage';
 export const AppContent = () => {
   const navigate = useNavigate();
   const { folderId } = useParams();
-  const [recentFolders, setRecentFolders] = useState<Array<{ id: string; name: string; lastUpdate: string }>>([]);
+  const [recentFolders, setRecentFolders] = useState<
+    Array<{ id: string; name: string; lastUpdate: string }>
+  >([]);
   const [searchQuery, setSearchQuery] = useState('');
 
   useEffect(() => {
     // Load recent folders from storage
     const loadRecentFolders = async () => {
-      const folders = await localforage.getItem<typeof recentFolders>('recentFolders') || [];
+      const folders =
+        (await localforage.getItem<typeof recentFolders>('recentFolders')) ||
+        [];
       setRecentFolders(folders);
     };
     loadRecentFolders();
   }, []);
 
-  const handleFolderSelect = useCallback((id: string) => {
-    navigate(`/bookshelf/${id}`);
-  }, [navigate]);
+  const handleFolderSelect = useCallback(
+    (id: string) => {
+      navigate(`/bookshelf/${id}`);
+    },
+    [navigate],
+  );
 
   const handleAddFolder = useCallback(() => {
     navigate('/');
   }, [navigate]);
 
-  const currentFolder = recentFolders.find(f => f.id === folderId);
+  const currentFolder = recentFolders.find((f) => f.id === folderId);
 
   return (
     <div className="min-h-screen flex flex-col">
@@ -46,8 +53,14 @@ export const AppContent = () => {
       <main className="flex-1 container-wrapper mx-auto max-w-7xl px-4">
         <Routes>
           <Route path="/" element={<HomePage />} />
-          <Route path="/bookshelf/:folderId" element={<BookshelfPage searchQuery={searchQuery} />} />
-          <Route path="/bookshelf/:folderId/:series" element={<SeriesPage searchQuery={searchQuery} />} />
+          <Route
+            path="/bookshelf/:folderId"
+            element={<BookshelfPage searchQuery={searchQuery} />}
+          />
+          <Route
+            path="/bookshelf/:folderId/:series"
+            element={<SeriesPage searchQuery={searchQuery} />}
+          />
           <Route path="/book/:id" element={<BookDetailsPage />} />
         </Routes>
       </main>
