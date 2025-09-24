@@ -31,39 +31,13 @@ export const Navbar: FC<NavbarProps> = ({
   return (
     <header className="sticky top-0 z-40 w-full border-b border-border bg-background/95 backdrop-blur">
       <div className="container-wrapper flex h-14 items-center justify-between">
-        <div className="flex items-center gap-4">
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button variant="ghost" className="gap-2">
-                {currentFolderName || 'Select Folder'}{' '}
-                <ChevronDown className="h-4 w-4" />
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="start" className="w-[240px]">
-              {recentFolders.map((folder) => (
-                <DropdownMenuItem
-                  key={folder.id}
-                  onClick={() => onFolderSelect(folder.id)}
-                  className="justify-between"
-                >
-                  <span className="truncate">{folder.name}</span>
-                  <span className="text-xs text-muted-foreground ml-2">
-                    {new Date(folder.lastUpdate).toLocaleDateString()}
-                  </span>
-                </DropdownMenuItem>
-              ))}
-              {recentFolders.length > 0 && <DropdownMenuSeparator />}
-              <DropdownMenuItem onClick={onAddFolder}>
-                Select Another Folder
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
-          {lastUpdate && (
-            <span className="text-sm text-muted-foreground">
-              Last update: {new Date(lastUpdate).toLocaleString()}
-            </span>
-          )}
-        </div>
+        <SelectFolderDropDown
+          currentFolderName={currentFolderName}
+          onFolderSelect={onFolderSelect}
+          onAddFolder={onAddFolder}
+          lastUpdate={lastUpdate}
+          recentFolders={recentFolders}
+        />
         <div className="relative flex items-center">
           <Search className="absolute left-3 h-4 w-4 text-muted-foreground" />
           <input
@@ -80,3 +54,52 @@ export const Navbar: FC<NavbarProps> = ({
     </header>
   );
 };
+
+function SelectFolderDropDown({
+  currentFolderName,
+  onFolderSelect,
+  onAddFolder,
+  lastUpdate,
+  recentFolders,
+}: Omit<NavbarProps, 'onSearchChange'>) {
+  return (
+    <div className="flex items-center gap-4">
+      <DropdownMenu>
+        <DropdownMenuTrigger asChild>
+          <Button variant="ghost" className="gap-2">
+            {/* Show folder name only on md+ screens */}
+            <span className="hidden sm:inline">
+              {currentFolderName || 'Select Folder'}
+            </span>
+            <ChevronDown className="h-4 w-4" />
+          </Button>
+        </DropdownMenuTrigger>
+
+        <DropdownMenuContent align="start" className="w-[240px]">
+          {recentFolders.map((folder) => (
+            <DropdownMenuItem
+              key={folder.id}
+              onClick={() => onFolderSelect(folder.id)}
+              className="justify-between"
+            >
+              <span className="truncate">{folder.name}</span>
+              <span className="text-xs text-muted-foreground ml-2">
+                {new Date(folder.lastUpdate).toLocaleDateString()}
+              </span>
+            </DropdownMenuItem>
+          ))}
+          {recentFolders.length > 0 && <DropdownMenuSeparator />}
+          <DropdownMenuItem onClick={onAddFolder}>
+            Select Another Folder
+          </DropdownMenuItem>
+        </DropdownMenuContent>
+      </DropdownMenu>
+
+      {lastUpdate && (
+        <span className="text-sm text-muted-foreground hidden sm:inline">
+          Last update: {new Date(lastUpdate).toLocaleString()}
+        </span>
+      )}
+    </div>
+  );
+}

@@ -90,7 +90,7 @@ export const Bookshelf: FC<BookshelfProps> = ({
   return (
     <div
       ref={gridRef}
-      className="container mx-auto px-4 min-h-screen overflow-y-auto scroll-smooth"
+      className="container mx-auto px-4 min-h-screen scroll-smooth"
       style={{ scrollPaddingTop: '1rem' }}
     >
       {selectedSeries ? (

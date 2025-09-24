@@ -31,6 +31,7 @@
     "react": "^19.1.1",
     "react-dom": "^19.1.1",
     "react-router-dom": "^7.9.1",
+    "react-virtualized": "^9.22.6",
     "react-window": "^2.1.1"
   },
   "devDependencies": {
@@ -40,6 +41,7 @@
     "@types/node": "^24.5.2",
     "@types/react": "^19.1.13",
     "@types/react-dom": "^19.1.9",
+    "@types/react-virtualized": "^9.22.3",
     "@vitejs/plugin-react": "^5.0.2",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
