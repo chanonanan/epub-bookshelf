@@ -1,5 +1,5 @@
-import { Suspense, lazy, useCallback, useState } from 'react';
-import { Route, Routes, useNavigate, useParams } from 'react-router-dom';
+import { Suspense, lazy, useCallback, useState, useEffect } from 'react';
+import { Route, Routes, useNavigate, useLocation } from 'react-router-dom';
 import { Navbar } from './components/Navbar';
 import { useRecentFolders } from './hooks';
 
@@ -11,9 +11,17 @@ const BookDetailsPage = lazy(() => import('./pages/BookDetailsPage'));
 
 export const AppContent = () => {
   const navigate = useNavigate();
-  const { folderId } = useParams();
-  const { recentFolders, currentFolder } = useRecentFolders(folderId);
+  const location = useLocation();
+  const [currentFolderId, setCurrentFolderId] = useState<string>();
+  const { recentFolders, currentFolder } = useRecentFolders(currentFolderId);
   const [searchQuery, setSearchQuery] = useState('');
+
+  // Extract folderId from path
+  useEffect(() => {
+    // Match both /bookshelf/:folderId and /book/:folderId routes
+    const match = location.pathname.match(/\/(bookshelf|book)\/([^\/]+)/);
+    setCurrentFolderId(match ? match[2] : undefined);
+  }, [location]);
 
   const handleFolderSelect = useCallback(
     (id: string) => {
@@ -29,7 +37,7 @@ export const AppContent = () => {
   return (
     <div className="min-h-screen flex flex-col">
       <Navbar
-        currentFolderId={folderId}
+        currentFolderId={currentFolderId}
         currentFolderName={currentFolder?.name}
         onFolderSelect={handleFolderSelect}
         onSearchChange={setSearchQuery}
