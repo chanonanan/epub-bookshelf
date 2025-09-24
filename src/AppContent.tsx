@@ -2,6 +2,7 @@ import { Suspense, lazy, useCallback, useState, useEffect } from 'react';
 import { Route, Routes, useNavigate, useLocation } from 'react-router-dom';
 import { Navbar } from './components/Navbar';
 import { useRecentFolders } from './hooks';
+import { Loading } from './components/Loading';
 
 // lazy imports (code-splitting)
 const HomePage = lazy(() => import('./pages/HomePage'));
@@ -46,7 +47,7 @@ export const AppContent = () => {
         recentFolders={recentFolders}
       />
       <main className="flex-1 container-wrapper mx-auto max-w-7xl px-4">
-        <Suspense fallback={<div>Loading...</div>}>
+        <Suspense fallback={<Loading />}>
           <Routes>
             <Route path="/" element={<HomePage />} />
             <Route

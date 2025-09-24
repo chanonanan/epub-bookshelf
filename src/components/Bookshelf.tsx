@@ -4,6 +4,7 @@ import { SeriesGrid, type SeriesGroup } from './SeriesGrid';
 import { Button } from './ui/button';
 import { useBookshelf } from '@/hooks';
 import type { BookMetadata } from '@/epubUtils';
+import { Loading } from './Loading';
 
 interface BookshelfProps {
   folderId: string;
@@ -25,7 +26,7 @@ export const Bookshelf: FC<BookshelfProps> = ({
   const selectedSeries = initialSeries;
 
   if (loading) {
-    return <LoadingShelf />;
+    return <Loading />;
   }
 
   if (error) {
@@ -50,14 +51,6 @@ export const Bookshelf: FC<BookshelfProps> = ({
     </div>
   );
 };
-
-function LoadingShelf() {
-  return (
-    <div className="flex items-center justify-center min-h-screen">
-      <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary"></div>
-    </div>
-  );
-}
 
 function ErrorShelf({
   folderId,
