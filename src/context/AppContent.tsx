@@ -1,14 +1,14 @@
-import { Suspense, lazy, useCallback, useState, useEffect } from 'react';
-import { Route, Routes, useNavigate, useLocation } from 'react-router-dom';
-import { Navbar } from './components/Navbar';
-import { useRecentFolders } from './hooks';
-import { Loading } from './components/Loading';
+import { useLoading } from '@/hooks/useLoading';
+import { Suspense, lazy, useCallback, useEffect, useState } from 'react';
+import { Route, Routes, useLocation, useNavigate } from 'react-router-dom';
+import { Navbar } from '../components/Navbar';
+import { useRecentFolders } from '../hooks';
 
 // lazy imports (code-splitting)
-const HomePage = lazy(() => import('./pages/HomePage'));
-const BookshelfPage = lazy(() => import('./pages/BookshelfPage'));
-const SeriesPage = lazy(() => import('./pages/SeriesPage'));
-const BookDetailsPage = lazy(() => import('./pages/BookDetailsPage'));
+const HomePage = lazy(() => import('../pages/HomePage'));
+const BookshelfPage = lazy(() => import('../pages/BookshelfPage'));
+const SeriesPage = lazy(() => import('../pages/SeriesPage'));
+const BookDetailsPage = lazy(() => import('../pages/BookDetailsPage'));
 
 export const AppContent = () => {
   const navigate = useNavigate();
@@ -47,7 +47,7 @@ export const AppContent = () => {
         recentFolders={recentFolders}
       />
       <main className="flex-1 container-wrapper mx-auto max-w-7xl px-4">
-        <Suspense fallback={<Loading />}>
+        <Suspense fallback={<LoadingRoute />}>
           <Routes>
             <Route path="/" element={<HomePage />} />
             <Route
@@ -68,3 +68,14 @@ export const AppContent = () => {
     </div>
   );
 };
+
+function LoadingRoute() {
+  const { setLoading } = useLoading();
+
+  useEffect(() => {
+    setLoading(true);
+    return () => setLoading(false);
+  }, [setLoading]);
+
+  return null;
+}

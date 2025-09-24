@@ -10,6 +10,22 @@
   margin-inline: auto;
 }
 
+html,
+body {
+  height: 100%;
+}
+
+html {
+  overflow: hidden;
+  /* prevent html scroll */
+}
+
+body {
+  overflow-y: auto;
+  /* move scroll handling to body */
+}
+
+
 @theme inline {
   --radius-sm: calc(var(--radius) - 4px);
   --radius-md: calc(var(--radius) - 2px);
@@ -121,6 +137,7 @@
   * {
     @apply border-border outline-ring/50;
   }
+
   body {
     @apply bg-background text-foreground;
   }

@@ -1,10 +1,10 @@
-import { type FC, useRef } from 'react';
+import { useBookshelf } from '@/hooks';
+import { useLoading } from '@/hooks/useLoading';
+import type { BookMetadata } from '@/lib/epubUtils';
+import { type FC, useEffect, useRef } from 'react';
 import { BookGrid } from './BookGrid';
 import { SeriesGrid, type SeriesGroup } from './SeriesGrid';
 import { Button } from './ui/button';
-import { useBookshelf } from '@/hooks';
-import type { BookMetadata } from '@/lib/epubUtils';
-import { Loading } from './Loading';
 
 interface BookshelfProps {
   folderId: string;
@@ -20,13 +20,22 @@ export const Bookshelf: FC<BookshelfProps> = ({
   const { series, loading, error, refreshBooks } = useBookshelf(
     folderId,
     searchQuery,
-    initialSeries
+    initialSeries,
   );
   const gridRef = useRef<HTMLDivElement>(null);
+  const { setLoading } = useLoading();
   const selectedSeries = initialSeries;
 
+  useEffect(() => {
+    if (loading) {
+      setLoading(true, 'Loading books...');
+    } else {
+      setLoading(false);
+    }
+  }, [loading, setLoading]);
+
   if (loading) {
-    return <Loading />;
+    return null;
   }
 
   if (error) {
