@@ -149,7 +149,3 @@ export default function BookDetailsPage() {
     </div>
   );
 }
-
-function preloadSeriesPage() {
-  import('./SeriesPage');
-}

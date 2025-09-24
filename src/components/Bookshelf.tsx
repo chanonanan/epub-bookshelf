@@ -1,9 +1,8 @@
 import { useBookshelf } from '@/hooks';
 import { useLoading } from '@/hooks/useLoading';
-import type { BookMetadata } from '@/lib/epubUtils';
 import { type FC, useEffect, useRef } from 'react';
 import { BookGrid } from './BookGrid';
-import { SeriesGrid, type SeriesGroup } from './SeriesGrid';
+import { SeriesGrid } from './SeriesGrid';
 import { Button } from './ui/button';
 
 interface BookshelfProps {
@@ -78,40 +77,4 @@ function ErrorShelf({
       </Button>
     </div>
   );
-}
-
-function groupBooksBySeries(books: BookMetadata[]): SeriesGroup[] {
-  const seriesMap = new Map<string, BookMetadata[]>();
-  const standaloneBooks: BookMetadata[] = [];
-
-  // Group books by series
-  books.forEach((book) => {
-    if (book.series) {
-      const seriesBooks = seriesMap.get(book.series) || [];
-      seriesBooks.push(book);
-      seriesMap.set(book.series, seriesBooks);
-    } else {
-      standaloneBooks.push(book);
-    }
-  });
-
-  // Convert map to array and sort books within series
-  const seriesGroups: SeriesGroup[] = Array.from(seriesMap.entries()).map(
-    ([name, books]) => ({
-      name,
-      books: books.sort((a, b) => (a.seriesIndex || 0) - (b.seriesIndex || 0)),
-      coverBlob: books[0]?.coverBlob,
-    }),
-  );
-
-  // Add standalone books as individual "series"
-  standaloneBooks.forEach((book) => {
-    seriesGroups.push({
-      name: book.title,
-      books: [book],
-      coverBlob: book.coverBlob,
-    });
-  });
-
-  return seriesGroups.sort((a, b) => a.name.localeCompare(b.name));
 }
