@@ -24,6 +24,10 @@ export const initializeGoogleAuth = async (): Promise<void> => {
           scope: SCOPE,
           prompt: '', // Empty string to use default prompt for test users
           auto_select: true, // Auto select the test account
+          ux_mode: /Mobi|Android/i.test(navigator.userAgent)
+            ? 'redirect'
+            : 'popup',
+          redirect_uri: 'https://chanonanan.github.io/epub-bookshelf/callback',
           callback: (response: TokenResponse) => {
             if (response.error) {
               reject(response.error);
@@ -79,11 +83,14 @@ let userEmail: string | null = null;
  */
 const getUserEmail = async (accessToken: string): Promise<string | null> => {
   try {
-    const response = await fetch('https://www.googleapis.com/oauth2/v2/userinfo', {
-      headers: {
-        Authorization: `Bearer ${accessToken}`,
+    const response = await fetch(
+      'https://www.googleapis.com/oauth2/v2/userinfo',
+      {
+        headers: {
+          Authorization: `Bearer ${accessToken}`,
+        },
       },
-    });
+    );
     if (!response.ok) return null;
     const data = await response.json();
     return data.email;
@@ -113,7 +120,9 @@ export const listEpubFiles = async (
     userEmail = await getUserEmail(authTokens.access_token);
   }
 
-  const cacheKey = userEmail ? `epubFiles:${userEmail}:${folderId}` : `epubFiles:${folderId}`;
+  const cacheKey = userEmail
+    ? `epubFiles:${userEmail}:${folderId}`
+    : `epubFiles:${folderId}`;
   const cachedFiles = await foldersCache.getItem<DriveFile[]>(cacheKey);
   if (cachedFiles && !ignoreCache) return cachedFiles;
 

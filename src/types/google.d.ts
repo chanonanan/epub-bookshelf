@@ -64,6 +64,8 @@ declare global {
           callback: (response: TokenResponse) => void;
           prompt?: string;
           auto_select?: boolean;
+          ux_mode?: 'popup' | 'redirect';
+          redirect_uri?: string;
         }): {
           requestAccessToken(): void;
           callback: (response: TokenResponse) => void;
