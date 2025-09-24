@@ -1,42 +1,15 @@
 import FolderPicker from '@/components/FolderPicker';
 import { Button } from '@/components/ui/button';
-import localforage from 'localforage';
-import { useState } from 'react';
+import { useGoogleAuth, useRecentFolders } from '@/hooks';
 import { useNavigate } from 'react-router-dom';
-import { initializeGoogleAuth } from '../googleDrive';
 
 export default function HomePage() {
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const { isLoading, error } = useGoogleAuth();
+  const { addRecentFolder } = useRecentFolders();
   const navigate = useNavigate();
 
-  useState(() => {
-    const init = async () => {
-      try {
-        await initializeGoogleAuth();
-        setIsLoading(false);
-      } catch (err) {
-        console.error('Failed to initialize Google auth:', err);
-        setError('Failed to initialize Google authentication');
-        setIsLoading(false);
-      }
-    };
-
-    init();
-  });
-
   const handleFolderSelect = async (folderId: string, name: string) => {
-    const recentFolders =
-      (await localforage.getItem<
-        Array<{ id: string; name: string; lastUpdate: string }>
-      >('recentFolders')) || [];
-    const updatedFolders = [
-      { id: folderId, name, lastUpdate: new Date().toISOString() },
-      ...recentFolders
-        .filter((f: { id: string }) => f.id !== folderId)
-        .slice(0, 4), // Keep last 5 folders
-    ];
-    await localforage.setItem('recentFolders', updatedFolders);
+    await addRecentFolder(folderId, name);
     import('./BookshelfPage');
     navigate(`/bookshelf/${folderId}`);
   };

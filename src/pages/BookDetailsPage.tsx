@@ -1,108 +1,27 @@
 import { RoutingPath } from '@/components/RoutingPath';
 import { LazyImage } from '@/components/ui/lazy-image';
+import { useBook } from '@/hooks';
 import DOMPurify from 'dompurify';
-import { useEffect, useMemo, useState } from 'react';
+import { useMemo, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { Button } from '../components/ui/button';
-import {
-  type BookMetadata,
-  extractBookInfo,
-  getMetadataById,
-} from '../epubUtils';
-import { downloadFile } from '../googleDrive';
 
 export default function BookDetailsPage() {
   const { id } = useParams<{ id: string }>();
-  const [book, setBook] = useState<BookMetadata | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const { book, isLoading, error, refreshMetadata, downloadBook } = useBook(id);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [isDownloading, setIsDownloading] = useState(false);
 
-  useEffect(() => {
-    const loadBook = async () => {
-      if (!id) {
-        setError('Invalid book ID');
-        setIsLoading(false);
-        return;
-      }
-
-      try {
-        // Load book metadata from cache
-        const metadata = await getMetadataById(id);
-        if (!metadata) {
-          setError('Book not found');
-          setIsLoading(false);
-          return;
-        }
-
-        setBook(metadata);
-      } catch (err) {
-        console.error('Error loading book:', err);
-        setError('Failed to load book details');
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
-    loadBook();
-  }, [id]);
-
   const handleRefresh = async () => {
-    if (!book?.id) return;
-
     setIsRefreshing(true);
-    setError(null);
-
-    try {
-      const blob = await downloadFile(book.id);
-      if (!blob) {
-        throw new Error('Failed to download EPUB file');
-      }
-
-      const freshMetadata = await extractBookInfo(book.id, blob);
-      setBook(freshMetadata);
-    } catch (err) {
-      console.error('Error refreshing metadata:', err);
-      setError('Failed to refresh book metadata');
-    } finally {
-      setIsRefreshing(false);
-    }
+    await refreshMetadata();
+    setIsRefreshing(false);
   };
 
   const handleDownload = async () => {
-    if (!book?.id) return;
-
     setIsDownloading(true);
-    setError(null);
-
-    try {
-      const blob = await downloadFile(book.id);
-
-      if (!blob) {
-        throw new Error('Failed to download file');
-      }
-
-      // Create download link with proper filename
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `${book.title}.epub`;
-      a.style.display = 'none';
-      document.body.appendChild(a);
-      a.click();
-
-      // Cleanup
-      setTimeout(() => {
-        document.body.removeChild(a);
-        URL.revokeObjectURL(url);
-      }, 100);
-    } catch (err) {
-      console.error('Error downloading book:', err);
-      setError('Failed to download book');
-    } finally {
-      setIsDownloading(false);
-    }
+    await downloadBook();
+    setIsDownloading(false);
   };
 
   const sanitizedDescription = useMemo(() => {

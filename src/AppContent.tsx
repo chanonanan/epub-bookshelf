@@ -1,7 +1,7 @@
-import localforage from 'localforage';
-import { Suspense, lazy, useCallback, useEffect, useState } from 'react';
+import { Suspense, lazy, useCallback, useState } from 'react';
 import { Route, Routes, useNavigate, useParams } from 'react-router-dom';
 import { Navbar } from './components/Navbar';
+import { useRecentFolders } from './hooks';
 
 // lazy imports (code-splitting)
 const HomePage = lazy(() => import('./pages/HomePage'));
@@ -12,20 +12,8 @@ const BookDetailsPage = lazy(() => import('./pages/BookDetailsPage'));
 export const AppContent = () => {
   const navigate = useNavigate();
   const { folderId } = useParams();
-  const [recentFolders, setRecentFolders] = useState<
-    Array<{ id: string; name: string; lastUpdate: string }>
-  >([]);
+  const { recentFolders, currentFolder } = useRecentFolders(folderId);
   const [searchQuery, setSearchQuery] = useState('');
-
-  useEffect(() => {
-    const loadRecentFolders = async () => {
-      const folders =
-        (await localforage.getItem<typeof recentFolders>('recentFolders')) ||
-        [];
-      setRecentFolders(folders);
-    };
-    loadRecentFolders();
-  }, []);
 
   const handleFolderSelect = useCallback(
     (id: string) => {
@@ -37,8 +25,6 @@ export const AppContent = () => {
   const handleAddFolder = useCallback(() => {
     navigate('/');
   }, [navigate]);
-
-  const currentFolder = recentFolders.find((f) => f.id === folderId);
 
   return (
     <div className="min-h-screen flex flex-col">

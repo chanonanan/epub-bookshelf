@@ -1,8 +1,9 @@
-import { type BookMetadata, getBooksInFolder } from '@/epubUtils';
-import { type FC, useEffect, useRef, useState } from 'react';
+import { type FC, useRef } from 'react';
 import { BookGrid } from './BookGrid';
 import { SeriesGrid, type SeriesGroup } from './SeriesGrid';
 import { Button } from './ui/button';
+import { useBookshelf } from '@/hooks';
+import type { BookMetadata } from '@/epubUtils';
 
 interface BookshelfProps {
   folderId: string;
@@ -15,67 +16,13 @@ export const Bookshelf: FC<BookshelfProps> = ({
   initialSeries,
   searchQuery = '',
 }) => {
-  const [books, setBooks] = useState<BookMetadata[]>([]);
-  const [series, setSeries] = useState<SeriesGroup[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const { series, loading, error, refreshBooks } = useBookshelf(
+    folderId,
+    searchQuery,
+    initialSeries
+  );
   const gridRef = useRef<HTMLDivElement>(null);
   const selectedSeries = initialSeries;
-
-  useEffect(() => {
-    if (folderId) {
-      loadBooks(folderId);
-    }
-  }, [folderId]);
-
-  const filteredBooks = searchQuery
-    ? books.filter(
-        (book) =>
-          book.title?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-          book.author?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-          book.series?.toLowerCase().includes(searchQuery.toLowerCase()),
-      )
-    : books;
-
-  // Group filtered books by series
-  useEffect(() => {
-    const groupedSeries: { [key: string]: BookMetadata[] } = {};
-
-    filteredBooks.forEach((book) => {
-      const seriesName = book.series || 'Standalone';
-      if (!groupedSeries[seriesName]) {
-        groupedSeries[seriesName] = [];
-      }
-      groupedSeries[seriesName].push(book);
-    });
-
-    const seriesGroups = Object.entries(groupedSeries).map(([name, books]) => ({
-      name,
-      books,
-      coverBlob: books[0]?.coverBlob,
-    }));
-
-    setSeries(seriesGroups);
-  }, [filteredBooks]);
-
-  useEffect(() => {
-    const grouped = groupBooksBySeries(books);
-    setSeries(grouped);
-  }, [books]);
-
-  const loadBooks = async (folderId: string) => {
-    try {
-      setLoading(true);
-      setError(null);
-      const books = await getBooksInFolder(folderId);
-      setBooks(books);
-    } catch (err) {
-      setError('Failed to load books. Please try again.');
-      console.error('Error loading books:', err);
-    } finally {
-      setLoading(false);
-    }
-  };
 
   if (loading) {
     return <LoadingShelf />;
@@ -83,7 +30,7 @@ export const Bookshelf: FC<BookshelfProps> = ({
 
   if (error) {
     return (
-      <ErrorShelf folderId={folderId} error={error} loadBooks={loadBooks} />
+      <ErrorShelf folderId={folderId} error={error} loadBooks={refreshBooks} />
     );
   }
 
