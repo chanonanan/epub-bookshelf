@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo } from 'react';
-import { type BookMetadata, getBooksInFolder } from '@/epubUtils';
+import { type BookMetadata, getBooksInFolder } from '@/lib/epubUtils';
 import type { SeriesGroup } from '@/components/SeriesGrid';
 
 interface UseBookshelfResult {

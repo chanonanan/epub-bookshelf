@@ -1,4 +1,4 @@
-import { getMetadataById } from '@/epubUtils';
+import { getMetadataById } from '@/lib/epubUtils';
 import { Fragment, useEffect, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import {
@@ -36,9 +36,12 @@ export function RoutingPath() {
             path: `/bookshelf/${folderId}/${selectedSeries}`,
           });
         }
-        const metadata = await getMetadataById(bookId || '');
-        if (metadata) {
-          items.push({ name: metadata.title || 'Book', path: '#' });
+
+        if (bookId) {
+          const metadata = await getMetadataById(bookId);
+          if (metadata) {
+            items.push({ name: metadata.title || 'Book', path: '#' });
+          }
         }
       } catch (err) {
         console.error('Error loading book metadata:', err);

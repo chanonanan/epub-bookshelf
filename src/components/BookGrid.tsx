@@ -1,4 +1,4 @@
-import type { BookMetadata } from '@/epubUtils';
+import type { BookMetadata } from '@/lib/epubUtils';
 import { useNavigate, useParams } from 'react-router-dom';
 import { Badge } from './ui/badge';
 import {

@@ -3,7 +3,7 @@ import { BookGrid } from './BookGrid';
 import { SeriesGrid, type SeriesGroup } from './SeriesGrid';
 import { Button } from './ui/button';
 import { useBookshelf } from '@/hooks';
-import type { BookMetadata } from '@/epubUtils';
+import type { BookMetadata } from '@/lib/epubUtils';
 import { Loading } from './Loading';
 
 interface BookshelfProps {

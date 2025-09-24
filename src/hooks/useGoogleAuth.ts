@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { initializeGoogleAuth, getTokens } from '@/googleDrive';
+import { initializeGoogleAuth, getTokens } from '@/lib/googleDrive';
 
 export interface UseGoogleAuthResult {
   isAuthenticated: boolean;

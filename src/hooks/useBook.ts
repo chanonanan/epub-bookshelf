@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
-import { type BookMetadata, getMetadataById, extractBookInfo } from '@/epubUtils';
-import { downloadFile } from '@/googleDrive';
+import { type BookMetadata, getMetadataById, extractBookInfo } from '@/lib/epubUtils';
+import { downloadFile } from '@/lib/googleDrive';
 
 interface UseBookResult {
   book: BookMetadata | null;

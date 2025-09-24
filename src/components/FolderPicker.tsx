@@ -1,4 +1,4 @@
-import { getTokens } from '@/googleDrive';
+import { getTokens } from '@/lib/googleDrive';
 import React, { useCallback, useEffect, useState } from 'react';
 import '../types/google.d';
 import { Button } from './ui/button';
