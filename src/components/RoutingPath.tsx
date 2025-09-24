@@ -1,5 +1,5 @@
 import { getMetadataById } from '@/epubUtils';
-import { useEffect, useState } from 'react';
+import { Fragment, useEffect, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import {
   Breadcrumb,
@@ -55,8 +55,8 @@ export function RoutingPath() {
       <Breadcrumb>
         <BreadcrumbList>
           {items.map((item, index) => (
-            <>
-              <BreadcrumbItem key={index}>
+            <Fragment key={index}>
+              <BreadcrumbItem>
                 <BreadcrumbLink asChild>
                   {index === items.length - 1 ? (
                     <BreadcrumbPage>{item.name}</BreadcrumbPage>
@@ -66,7 +66,7 @@ export function RoutingPath() {
                 </BreadcrumbLink>
               </BreadcrumbItem>
               {index < items.length - 1 && <BreadcrumbSeparator />}
-            </>
+            </Fragment>
           ))}
         </BreadcrumbList>
       </Breadcrumb>
