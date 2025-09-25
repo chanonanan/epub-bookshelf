@@ -24,9 +24,7 @@ export const initializeGoogleAuth = async (): Promise<void> => {
           scope: SCOPE,
           prompt: '', // Empty string to use default prompt for test users
           auto_select: true, // Auto select the test account
-          ux_mode: /Mobi|Android/i.test(navigator.userAgent)
-            ? 'redirect'
-            : 'popup',
+          ux_mode: 'redirect',
           redirect_uri: 'https://chanonanan.github.io/epub-bookshelf/callback',
           callback: (response: TokenResponse) => {
             if (response.error) {
@@ -66,14 +64,38 @@ export const initializeGoogleAuth = async (): Promise<void> => {
   });
 };
 
+export const setTokens = async (tokenResponse: TokenResponse) => {
+  const tokens: GoogleTokens = {
+    access_token: tokenResponse.access_token!,
+    expires_at: Date.now() + tokenResponse.expires_in * 1000,
+  };
+
+  await localforage.setItem('google_tokens', tokens);
+  tokenPromise = Promise.resolve(tokens);
+};
+
+function parseJwt(token: string): any {
+  const base64Url = token.split('.')[1];
+  const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
+  const jsonPayload = decodeURIComponent(
+    atob(base64)
+      .split('')
+      .map((c) => '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2))
+      .join(''),
+  );
+  return JSON.parse(jsonPayload);
+}
+
 /**
  * Get OAuth tokens, either from cache or by authenticating
  */
 export const getTokens = async (): Promise<GoogleTokens | null> => {
-  if (!tokenPromise) {
-    tokenPromise = _refreshTokens();
+  const cachedTokens = await localforage.getItem<GoogleTokens>('google_tokens');
+  if (cachedTokens && cachedTokens.expires_at > Date.now()) {
+    return cachedTokens;
   }
-  return tokenPromise;
+
+  return null;
 };
 
 let userEmail: string | null = null;

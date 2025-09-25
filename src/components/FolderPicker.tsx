@@ -61,7 +61,7 @@ const FolderPicker: React.FC<FolderPickerProps> = ({
         return;
       }
 
-      console.log('Got access token, creating picker...');
+      console.log('Got access token, creating picker...', tokens);
 
       const picker = getGooglePicker();
       if (!picker) {
