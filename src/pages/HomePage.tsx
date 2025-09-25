@@ -8,10 +8,9 @@ import {
   CardHeader,
   CardTitle,
 } from '@/components/ui/card';
-import { useGoogleAuth, useRecentFolders } from '@/hooks';
+import { useGoogleAuth } from '@/hooks';
 import { AlertCircle, Loader2Icon } from 'lucide-react';
 import { useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
 
 export default function HomePage() {
   const { checkTokens, error, isAuthenticated } = useGoogleAuth();
@@ -107,14 +106,6 @@ function GoogleDriveAuth({ onSignIn }: { onSignIn: () => void }) {
 
 function GoogleDriveCard({ onSignOut }: { onSignOut: () => void }) {
   const { signOut } = useGoogleAuth();
-  const { addRecentFolder } = useRecentFolders();
-  const navigate = useNavigate();
-
-  const handleFolderSelect = async (folderId: string, name: string) => {
-    await addRecentFolder(folderId, name);
-    import('./BookshelfPage');
-    navigate(`/bookshelf/${folderId}`);
-  };
 
   const handleSignOut = async () => {
     await signOut();
