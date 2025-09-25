@@ -1,69 +1,5 @@
 import localforage from 'localforage';
 
-const SCOPE = 'https://www.googleapis.com/auth/drive.readonly';
-const CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID;
-
-let client: ReturnType<
-  typeof window.google.accounts.oauth2.initTokenClient
-> | null = null;
-
-let tokenPromise: Promise<GoogleTokens | null> | null = null;
-
-/**
- * Initialize Google Identity Services
- */
-export const initializeGoogleAuth = async (): Promise<void> => {
-  return new Promise((resolve, reject) => {
-    const script = document.createElement('script');
-    script.src = 'https://accounts.google.com/gsi/client';
-    script.onload = async () => {
-      try {
-        // Initialize the client
-        client = window.google.accounts.oauth2.initTokenClient({
-          client_id: CLIENT_ID,
-          scope: SCOPE,
-          prompt: '', // Empty string to use default prompt for test users
-          auto_select: true, // Auto select the test account
-          ux_mode: 'redirect',
-          redirect_uri: 'https://chanonanan.github.io/epub-bookshelf/callback',
-          callback: (response: TokenResponse) => {
-            if (response.error) {
-              reject(response.error);
-              return;
-            }
-
-            // Store tokens
-            const tokens: GoogleTokens = {
-              access_token: response.access_token,
-              expires_at: Date.now() + response.expires_in * 1000,
-            };
-            localforage.setItem('google_tokens', tokens);
-            tokenPromise = Promise.resolve(tokens);
-            resolve();
-          },
-        });
-
-        // Check if we have cached tokens
-        const cachedTokens =
-          await localforage.getItem<GoogleTokens>('google_tokens');
-        if (cachedTokens && cachedTokens.expires_at > Date.now()) {
-          tokenPromise = Promise.resolve(cachedTokens);
-          resolve();
-          return;
-        }
-
-        // Request new tokens
-        client?.requestAccessToken();
-      } catch (err) {
-        reject(err);
-      }
-    };
-    script.onerror = () =>
-      reject(new Error('Failed to load Google Identity Services'));
-    document.head.appendChild(script);
-  });
-};
-
 export const setTokens = async (tokenResponse: TokenResponse) => {
   const tokens: GoogleTokens = {
     access_token: tokenResponse.access_token!,
@@ -71,24 +7,8 @@ export const setTokens = async (tokenResponse: TokenResponse) => {
   };
 
   await localforage.setItem('google_tokens', tokens);
-  tokenPromise = Promise.resolve(tokens);
 };
 
-function parseJwt(token: string): any {
-  const base64Url = token.split('.')[1];
-  const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
-  const jsonPayload = decodeURIComponent(
-    atob(base64)
-      .split('')
-      .map((c) => '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2))
-      .join(''),
-  );
-  return JSON.parse(jsonPayload);
-}
-
-/**
- * Get OAuth tokens, either from cache or by authenticating
- */
 export const getTokens = async (): Promise<GoogleTokens | null> => {
   const cachedTokens = await localforage.getItem<GoogleTokens>('google_tokens');
   if (cachedTokens && cachedTokens.expires_at > Date.now()) {
@@ -103,13 +23,16 @@ let userEmail: string | null = null;
 /**
  * Get user's email for cache key
  */
-const getUserEmail = async (accessToken: string): Promise<string | null> => {
+const getUserEmail = async (): Promise<string | null> => {
   try {
+    const tokens = await getTokens();
+    if (!tokens) return null;
+
     const response = await fetch(
       'https://www.googleapis.com/oauth2/v2/userinfo',
       {
         headers: {
-          Authorization: `Bearer ${accessToken}`,
+          Authorization: `Bearer ${tokens.access_token}`,
         },
       },
     );
@@ -139,7 +62,7 @@ export const listEpubFiles = async (
 
   // Get user email if we don't have it
   if (!userEmail) {
-    userEmail = await getUserEmail(authTokens.access_token);
+    userEmail = await getUserEmail();
   }
 
   const cacheKey = userEmail
@@ -244,47 +167,6 @@ export const downloadFile = async (fileId: string): Promise<Blob | null> => {
     return response.blob();
   } catch (error) {
     console.error('Error downloading file:', error);
-    return null;
-  }
-};
-
-// Helper functions
-export const _refreshTokens = async (): Promise<GoogleTokens | null> => {
-  try {
-    if (!client) {
-      await initializeGoogleAuth();
-    }
-
-    // Check cache first
-    const cachedTokens =
-      await localforage.getItem<GoogleTokens>('google_tokens');
-    if (cachedTokens && cachedTokens.expires_at > Date.now()) {
-      return cachedTokens;
-    }
-
-    // Request new tokens
-    return new Promise((resolve) => {
-      if (client) {
-        client.callback = (response: TokenResponse) => {
-          if (response.error) {
-            resolve(null);
-            return;
-          }
-
-          const tokens: GoogleTokens = {
-            access_token: response.access_token,
-            expires_at: Date.now() + response.expires_in * 1000,
-          };
-          localforage.setItem('google_tokens', tokens);
-          resolve(tokens);
-        };
-        client.requestAccessToken();
-      } else {
-        resolve(null);
-      }
-    });
-  } catch (error) {
-    console.error('Error refreshing tokens:', error);
     return null;
   }
 };
