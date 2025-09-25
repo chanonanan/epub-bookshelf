@@ -31,7 +31,7 @@ export default function BookDetailsPage() {
 
   if (isLoading) {
     return (
-      <div className="flex items-center justify-center min-h-screen">
+      <div className="flex items-center justify-center">
         <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary"></div>
       </div>
     );
@@ -39,7 +39,7 @@ export default function BookDetailsPage() {
 
   if (error || !book) {
     return (
-      <div className="flex flex-col items-center justify-center gap-4 min-h-screen">
+      <div className="flex flex-col items-center justify-center gap-4">
         <p className="text-destructive">{error || 'Book not found'}</p>
         <Button variant="outline" onClick={() => window.history.back()}>
           Go Back

@@ -46,7 +46,7 @@ export const Bookshelf: FC<BookshelfProps> = ({
   return (
     <div
       ref={gridRef}
-      className="container mx-auto px-4 min-h-screen overflow-y-auto scroll-smooth"
+      className="container mx-auto px-4 overflow-y-auto scroll-smooth"
       style={{ scrollPaddingTop: '1rem' }}
     >
       {selectedSeries ? (
@@ -70,7 +70,7 @@ function ErrorShelf({
   loadBooks: (folderId: string) => void;
 }) {
   return (
-    <div className="flex flex-col items-center justify-center gap-4 min-h-screen">
+    <div className="flex flex-col items-center justify-center gap-4">
       <p className="text-destructive">{error}</p>
       <Button variant="outline" onClick={() => loadBooks(folderId)}>
         Retry

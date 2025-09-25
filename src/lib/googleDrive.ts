@@ -18,6 +18,10 @@ export const getTokens = async (): Promise<GoogleTokens | null> => {
   return null;
 };
 
+export const clearTokens = async () => {
+  await localforage.removeItem('google_tokens');
+};
+
 let userEmail: string | null = null;
 
 /**

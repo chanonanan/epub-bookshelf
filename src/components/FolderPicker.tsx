@@ -1,11 +1,21 @@
+import { useRecentFolders } from '@/hooks/useRecentFolders';
 import { getTokens } from '@/lib/googleDrive';
+import { ChevronDown } from 'lucide-react';
 import React, { useCallback, useEffect, useState } from 'react';
+import { useLocation, useNavigate } from 'react-router-dom';
 import '../types/google.d';
-import { Button } from './ui/button';
+import { Button, type ButtonProps } from './ui/button';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from './ui/dropdown-menu';
 
 interface FolderPickerProps {
-  onFolderSelect: (folderId: string, folderName: string) => void;
-  apiKey: string;
+  className?: string;
+  variant?: ButtonProps['variant'];
 }
 
 const getGooglePicker = (): GooglePickerNamespace => {
@@ -13,12 +23,20 @@ const getGooglePicker = (): GooglePickerNamespace => {
   return (window.google as unknown as { picker: GooglePickerNamespace }).picker;
 };
 
-const FolderPicker: React.FC<FolderPickerProps> = ({
-  onFolderSelect,
-  apiKey,
-}) => {
+const FolderPicker: React.FC<FolderPickerProps> = ({ className, variant }) => {
+  const navigate = useNavigate();
   const [isPickerLoaded, setIsPickerLoaded] = useState(false);
-  const [isLoading, setIsLoading] = useState(false);
+  const location = useLocation();
+  const [currentFolderId, setCurrentFolderId] = useState<string>();
+  const { currentFolder, addRecentFolder } = useRecentFolders(currentFolderId);
+  const { recentFolders } = useRecentFolders(); // Get all recent folders for the dropdown
+
+  // Extract folderId from path
+  useEffect(() => {
+    // Match both /bookshelf/:folderId and /book/:folderId routes
+    const match = location.pathname.match(/\/(bookshelf|book)\/([^\/]+)/);
+    setCurrentFolderId(match ? match[2] : undefined);
+  }, [location]);
 
   const loadPicker = useCallback(() => {
     console.log('Attempting to load picker...');
@@ -34,6 +52,14 @@ const FolderPicker: React.FC<FolderPickerProps> = ({
       setIsPickerLoaded(true);
     });
   }, []);
+
+  const onFolderSelect = useCallback(
+    async (id: string, name: string) => {
+      await addRecentFolder(id, name);
+      navigate(`/bookshelf/${id}`);
+    },
+    [navigate],
+  );
 
   // Load the picker when the component mounts
   useEffect(() => {
@@ -52,7 +78,6 @@ const FolderPicker: React.FC<FolderPickerProps> = ({
       return;
     }
 
-    setIsLoading(true);
     try {
       // First ensure we have valid tokens
       const tokens = await getTokens();
@@ -79,7 +104,7 @@ const FolderPicker: React.FC<FolderPickerProps> = ({
       const pickerInstance = new picker.PickerBuilder()
         .addView(view)
         .setOAuthToken(tokens.access_token)
-        .setDeveloperKey(apiKey)
+        .setDeveloperKey(import.meta.env.VITE_GOOGLE_API_KEY)
         .setCallback((data: GooglePickerResponse) => {
           console.log('Picker callback:', data);
           if (data.action === picker.Action.PICKED && data.docs?.length) {
@@ -94,19 +119,36 @@ const FolderPicker: React.FC<FolderPickerProps> = ({
       pickerInstance.setVisible(true);
     } catch (error) {
       console.error('Error showing picker:', error);
-    } finally {
-      setIsLoading(false);
     }
-  }, [apiKey, isPickerLoaded, onFolderSelect]);
+  }, [isPickerLoaded, onFolderSelect]);
 
   return (
-    <Button
-      onClick={showPicker}
-      variant="outline"
-      disabled={!isPickerLoaded || isLoading}
-    >
-      {isLoading ? 'Loading...' : 'Select EPUB Folder'}
-    </Button>
+    <DropdownMenu>
+      <DropdownMenuTrigger asChild>
+        <Button variant={variant || 'ghost'} className={className}>
+          {currentFolder?.name || 'Select Folder'}{' '}
+          <ChevronDown className="h-4 w-4" />
+        </Button>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent align="start" className="w-[240px]">
+        {recentFolders.map((folder) => (
+          <DropdownMenuItem
+            key={folder.id}
+            onClick={() => onFolderSelect(folder.id, folder.name)}
+            className="justify-between"
+          >
+            <span className="truncate">{folder.name}</span>
+            <span className="text-xs text-muted-foreground ml-2">
+              {new Date(folder.lastUpdate).toLocaleDateString()}
+            </span>
+          </DropdownMenuItem>
+        ))}
+        {recentFolders.length > 0 && <DropdownMenuSeparator />}
+        <DropdownMenuItem onClick={showPicker}>
+          Select Another Folder
+        </DropdownMenuItem>
+      </DropdownMenuContent>
+    </DropdownMenu>
   );
 };
 

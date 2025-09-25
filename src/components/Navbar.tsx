@@ -1,66 +1,34 @@
-import { ChevronDown, Search } from 'lucide-react';
-import { type FC } from 'react';
+import { useRecentFolders } from '@/hooks';
+import { Search } from 'lucide-react';
+import { useEffect, useState, type FC } from 'react';
+import { useLocation } from 'react-router-dom';
+import FolderPicker from './FolderPicker';
 import { ModeToggle } from './ModeToggle';
-import { Button } from './ui/button';
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from './ui/dropdown-menu';
 
 interface NavbarProps {
-  currentFolderId?: string;
-  currentFolderName?: string;
-  onFolderSelect: (folderId: string) => void;
   onSearchChange: (query: string) => void;
-  onAddFolder: () => void;
-  lastUpdate?: string;
-  recentFolders: Array<{ id: string; name: string; lastUpdate: string }>;
 }
 
-export const Navbar: FC<NavbarProps> = ({
-  currentFolderName,
-  onFolderSelect,
-  onSearchChange,
-  onAddFolder,
-  lastUpdate,
-  recentFolders,
-}) => {
+export const Navbar: FC<NavbarProps> = ({ onSearchChange }) => {
+  const location = useLocation();
+  const [currentFolderId, setCurrentFolderId] = useState<string>();
+  const { currentFolder } = useRecentFolders(currentFolderId);
+
+  // Extract folderId from path
+  useEffect(() => {
+    // Match both /bookshelf/:folderId and /book/:folderId routes
+    const match = location.pathname.match(/\/(bookshelf|book)\/([^\/]+)/);
+    setCurrentFolderId(match ? match[2] : undefined);
+  }, [location]);
+
   return (
     <header className="sticky top-0 z-40 w-full border-b border-border bg-background/95 backdrop-blur">
       <div className="container-wrapper flex h-14 items-center justify-between md:justify-start">
         <div className="md:flex-1 flex items-center gap-4">
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button variant="ghost" className="gap-2">
-                {currentFolderName || 'Select Folder'}{' '}
-                <ChevronDown className="h-4 w-4" />
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="start" className="w-[240px]">
-              {recentFolders.map((folder) => (
-                <DropdownMenuItem
-                  key={folder.id}
-                  onClick={() => onFolderSelect(folder.id)}
-                  className="justify-between"
-                >
-                  <span className="truncate">{folder.name}</span>
-                  <span className="text-xs text-muted-foreground ml-2">
-                    {new Date(folder.lastUpdate).toLocaleDateString()}
-                  </span>
-                </DropdownMenuItem>
-              ))}
-              {recentFolders.length > 0 && <DropdownMenuSeparator />}
-              <DropdownMenuItem onClick={onAddFolder}>
-                Select Another Folder
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
-          {lastUpdate && (
+          <FolderPicker />
+          {currentFolder?.lastUpdate && (
             <span className="hidden md:inline-block text-sm text-muted-foreground">
-              Last update: {new Date(lastUpdate).toLocaleString()}
+              Last update: {new Date(currentFolder.lastUpdate).toLocaleString()}
             </span>
           )}
         </div>

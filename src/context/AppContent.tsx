@@ -1,8 +1,8 @@
+import { ModeToggle } from '@/components/ModeToggle';
 import { useLoading } from '@/hooks/useLoading';
-import { Suspense, lazy, useCallback, useEffect, useState } from 'react';
-import { Route, Routes, useLocation, useNavigate } from 'react-router-dom';
+import { Suspense, lazy, useEffect, useState } from 'react';
+import { Outlet, Route, Routes } from 'react-router-dom';
 import { Navbar } from '../components/Navbar';
-import { useRecentFolders } from '../hooks';
 
 // lazy imports (code-splitting)
 const HomePage = lazy(() => import('../pages/HomePage'));
@@ -11,45 +11,37 @@ const SeriesPage = lazy(() => import('../pages/SeriesPage'));
 const BookDetailsPage = lazy(() => import('../pages/BookDetailsPage'));
 
 export const AppContent = () => {
-  const navigate = useNavigate();
-  const location = useLocation();
-  const [currentFolderId, setCurrentFolderId] = useState<string>();
-  const { recentFolders, currentFolder } = useRecentFolders(currentFolderId);
   const [searchQuery, setSearchQuery] = useState('');
-
-  // Extract folderId from path
-  useEffect(() => {
-    // Match both /bookshelf/:folderId and /book/:folderId routes
-    const match = location.pathname.match(/\/(bookshelf|book)\/([^\/]+)/);
-    setCurrentFolderId(match ? match[2] : undefined);
-  }, [location]);
-
-  const handleFolderSelect = useCallback(
-    (id: string) => {
-      navigate(`/bookshelf/${id}`);
-    },
-    [navigate],
-  );
-
-  const handleAddFolder = useCallback(() => {
-    navigate('/');
-  }, [navigate]);
 
   return (
     <div className="min-h-screen flex flex-col">
-      <Navbar
-        currentFolderId={currentFolderId}
-        currentFolderName={currentFolder?.name}
-        onFolderSelect={handleFolderSelect}
-        onSearchChange={setSearchQuery}
-        onAddFolder={handleAddFolder}
-        lastUpdate={currentFolder?.lastUpdate}
-        recentFolders={recentFolders}
-      />
-      <main className="flex-1 container-wrapper mx-auto max-w-7xl px-4">
-        <Suspense fallback={<LoadingRoute />}>
-          <Routes>
-            <Route path="/" element={<HomePage />} />
+      <Suspense fallback={<LoadingRoute />}>
+        <Routes>
+          <Route
+            path="/"
+            element={
+              <>
+                <header className="sticky top-0 z-40 w-full border-b border-border bg-background/95 backdrop-blur">
+                  <div className="container-wrapper flex h-14 items-center justify-end">
+                    <ModeToggle />
+                  </div>
+                </header>
+                <main className="flex flex-1 mx-auto">
+                  <HomePage />
+                </main>
+              </>
+            }
+          />
+          <Route
+            element={
+              <>
+                <Navbar onSearchChange={setSearchQuery} />
+                <main className="flex-1 container-wrapper mx-auto max-w-7xl px-4">
+                  <Outlet />
+                </main>
+              </>
+            }
+          >
             <Route
               path="/bookshelf/:folderId"
               element={<BookshelfPage searchQuery={searchQuery} />}
@@ -62,9 +54,9 @@ export const AppContent = () => {
               path="/book/:folderId/:series/:id"
               element={<BookDetailsPage />}
             />
-          </Routes>
-        </Suspense>
-      </main>
+          </Route>
+        </Routes>
+      </Suspense>
     </div>
   );
 };
