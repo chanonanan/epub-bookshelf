@@ -1,82 +1,78 @@
 import localforage from 'localforage';
 
-export const setTokens = async (tokenResponse: TokenResponse) => {
-  const tokens: GoogleTokens = {
-    access_token: tokenResponse.access_token!,
-    expires_at: Date.now() + tokenResponse.expires_in * 1000,
-  };
-
-  await localforage.setItem('google_tokens', tokens);
-};
-
-export const getTokens = async (): Promise<GoogleTokens | null> => {
-  const cachedTokens = await localforage.getItem<GoogleTokens>('google_tokens');
-  if (cachedTokens && cachedTokens.expires_at > Date.now()) {
-    return cachedTokens;
-  }
-
-  return null;
-};
-
-export const clearTokens = async () => {
-  await localforage.removeItem('google_tokens');
-};
-
-let userEmail: string | null = null;
-
-/**
- * Get user's email for cache key
- */
-const getUserEmail = async (): Promise<string | null> => {
-  try {
-    const tokens = await getTokens();
-    if (!tokens) return null;
-
-    const response = await fetch(
-      'https://www.googleapis.com/oauth2/v2/userinfo',
-      {
-        headers: {
-          Authorization: `Bearer ${tokens.access_token}`,
-        },
-      },
-    );
-    if (!response.ok) return null;
-    const data = await response.json();
-    return data.email;
-  } catch (error) {
-    console.error('Failed to fetch user email:', error);
-    return null;
-  }
-};
-
 const foldersCache = localforage.createInstance({
   name: 'epubBookshelf',
   storeName: 'folders',
 });
 
-/**
- * List all EPUB files in user's Drive
- */
+export class GoogleTokenUtil {
+  private static tokenCache = localforage.createInstance({
+    name: 'epubBookshelf',
+    storeName: 'google_token',
+  });
+
+  static async setToken(resp: TokenResponse | null) {
+    if (resp) {
+      const expires_at = Date.now() + resp.expires_in * 1000;
+      const userinfo = await this.getUserinfo(resp.access_token);
+      const token: GoogleToken = {
+        access_token: resp.access_token,
+        expires_at,
+        user_info: userinfo,
+      };
+
+      await GoogleTokenUtil.tokenCache.setItem('google_token', token);
+      return token;
+    } else {
+      await GoogleTokenUtil.tokenCache.removeItem('google_token');
+      return null;
+    }
+  }
+
+  static async getToken(): Promise<GoogleToken | null> {
+    const token =
+      await GoogleTokenUtil.tokenCache.getItem<GoogleToken>('google_token');
+    if (token && token.expires_at > Date.now()) {
+      return token;
+    }
+    return null;
+  }
+
+  private static async getUserinfo(access_token: string) {
+    try {
+      const response = await fetch(
+        'https://www.googleapis.com/oauth2/v2/userinfo',
+        {
+          headers: {
+            Authorization: `Bearer ${access_token}`,
+          },
+        },
+      );
+      if (!response.ok) return null;
+      const data = await response.json();
+      console.log('User info:', data);
+      return data;
+    } catch (error) {
+      console.error('Failed to fetch user info:', error);
+      return null;
+    }
+  }
+}
+
 export const listEpubFiles = async (
   folderId: string,
   ignoreCache = false,
 ): Promise<DriveFile[]> => {
-  const authTokens = await getTokens();
-  if (!authTokens) return [];
+  const token = await GoogleTokenUtil.getToken();
+  if (!token) return [];
 
-  // Get user email if we don't have it
-  if (!userEmail) {
-    userEmail = await getUserEmail();
-  }
+  const userEmail = token.user_info?.email;
 
   const cacheKey = userEmail
     ? `epubFiles:${userEmail}:${folderId}`
     : `epubFiles:${folderId}`;
   const cachedFiles = await foldersCache.getItem<DriveFile[]>(cacheKey);
   if (cachedFiles && !ignoreCache) return cachedFiles;
-
-  const tokens = await getTokens();
-  if (!tokens) return [];
 
   const allFiles: DriveFile[] = [];
 
@@ -101,7 +97,7 @@ export const listEpubFiles = async (
 
       const response = await fetch(url.toString(), {
         headers: {
-          Authorization: `Bearer ${tokens.access_token}`,
+          Authorization: `Bearer ${token.access_token}`,
         },
       });
 
@@ -132,14 +128,11 @@ export const listEpubFiles = async (
   return allFiles;
 };
 
-/**
- * Download an EPUB file from Drive (no caching)
- */
 export const downloadFile = async (fileId: string): Promise<Blob | null> => {
   try {
-    const tokens = await getTokens();
-    if (!tokens) {
-      console.error('No authentication tokens available');
+    const token = await GoogleTokenUtil.getToken();
+    if (!token) {
+      console.error('No authentication token available');
       return null;
     }
 
@@ -153,7 +146,7 @@ export const downloadFile = async (fileId: string): Promise<Blob | null> => {
 
     const response = await fetch(url, {
       headers: {
-        Authorization: `Bearer ${tokens.access_token}`,
+        Authorization: `Bearer ${token.access_token}`,
       },
     });
 
@@ -174,3 +167,24 @@ export const downloadFile = async (fileId: string): Promise<Blob | null> => {
     return null;
   }
 };
+
+export async function checkFolderAccess(folderId: string): Promise<boolean> {
+  try {
+    const token = await GoogleTokenUtil.getToken();
+    if (!token) return false;
+    if (!folderId) return false;
+
+    const resp = await fetch(
+      `https://www.googleapis.com/drive/v3/files/${folderId}?fields=id`,
+      {
+        headers: {
+          Authorization: `Bearer ${token.access_token}`,
+        },
+      },
+    );
+
+    return resp.ok;
+  } catch (error) {
+    return false;
+  }
+}

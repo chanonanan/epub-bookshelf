@@ -37,9 +37,20 @@ declare global {
     Action: GooglePickerAction;
   }
 
-  interface GoogleTokens {
+  interface GoogleUserInfo {
+    id: string;
+    email: string;
+    verified_email: boolean;
+    name: string;
+    given_name: string;
+    family_name: string;
+    picture: string;
+  }
+
+  interface GoogleToken {
     access_token: string;
     expires_at: number;
+    user_info: GoogleUserInfo | null;
   }
 
   interface DriveFile {
@@ -55,6 +66,16 @@ declare global {
     error?: string;
   }
 
+  interface NonOAuthError {
+    /**
+     * Some non-OAuth errors, such as the popup window is failed to open;
+     * or closed before an OAuth response is returned.
+     * https://developers.google.com/identity/oauth2/web/reference/js-reference#TokenClientConfig
+     * https://developers.google.com/identity/oauth2/web/reference/js-reference#CodeClientConfig
+     */
+    type: 'popup_failed_to_open' | 'popup_closed' | 'unknown';
+  }
+
   interface GoogleIdentityServices {
     accounts: {
       oauth2: {
@@ -62,6 +83,7 @@ declare global {
           client_id: string;
           scope: string;
           callback: (response: TokenResponse) => void;
+          error_callback?: (error: NonOAuthError) => void;
           prompt?: string;
           auto_select?: boolean;
           ux_mode?: 'popup' | 'redirect';

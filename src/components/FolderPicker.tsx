@@ -1,5 +1,5 @@
+import { useAuth } from '@/auth/AuthProvider';
 import { useRecentFolders } from '@/hooks/useRecentFolders';
-import { getTokens } from '@/lib/googleDrive';
 import { ChevronDown } from 'lucide-react';
 import React, { useCallback, useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
@@ -28,9 +28,9 @@ const FolderPicker: React.FC<FolderPickerProps> = ({ className, variant }) => {
   const [isPickerLoaded, setIsPickerLoaded] = useState(false);
   const { currentFolder, addRecentFolder } = useRecentFolders();
   const { recentFolders } = useRecentFolders(); // Get all recent folders for the dropdown
+  const { token } = useAuth();
 
   const loadPicker = useCallback(() => {
-    console.log('Attempting to load picker...');
     if (!window.gapi) {
       console.error('Google API client not loaded, waiting...');
       // Try again in 1 second
@@ -56,7 +56,6 @@ const FolderPicker: React.FC<FolderPickerProps> = ({ className, variant }) => {
 
   // Load the picker when the component mounts
   useEffect(() => {
-    console.log('FolderPicker mounted, initializing...');
     loadPicker();
 
     // Cleanup function
@@ -72,14 +71,11 @@ const FolderPicker: React.FC<FolderPickerProps> = ({ className, variant }) => {
     }
 
     try {
-      // First ensure we have valid tokens
-      const tokens = await getTokens();
-      if (!tokens) {
+      // First ensure we have valid token
+      if (!token) {
         console.error('No access token available');
         return;
       }
-
-      console.log('Got access token, creating picker...', tokens);
 
       const picker = getGooglePicker();
       if (!picker) {
@@ -96,7 +92,7 @@ const FolderPicker: React.FC<FolderPickerProps> = ({ className, variant }) => {
 
       const pickerInstance = new picker.PickerBuilder()
         .addView(view)
-        .setOAuthToken(tokens.access_token)
+        .setOAuthToken(token.access_token)
         .setDeveloperKey(import.meta.env.VITE_GOOGLE_API_KEY)
         .setCallback((data: GooglePickerResponse) => {
           console.log('Picker callback:', data);
@@ -113,7 +109,7 @@ const FolderPicker: React.FC<FolderPickerProps> = ({ className, variant }) => {
     } catch (error) {
       console.error('Error showing picker:', error);
     }
-  }, [isPickerLoaded, onFolderSelect]);
+  }, [isPickerLoaded, onFolderSelect, token]);
 
   return (
     <DropdownMenu>

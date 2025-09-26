@@ -27,16 +27,12 @@ export function useRecentFolders(): UseRecentFoldersResult {
   }, [location]);
 
   useEffect(() => {
-    console.log('Loading folders for ID:', currentFolderId);
     const loadRecentFolders = async () => {
       try {
         const folders =
           (await localforage.getItem<RecentFolder[]>('recentFolders')) || [];
-        console.log('Loaded folders:', folders);
         setRecentFolders(folders);
-      } catch (error) {
-        console.error('Error loading recent folders:', error);
-      }
+      } catch (error) {}
     };
     loadRecentFolders();
   }, [currentFolderId]); // Add currentFolderId to dependencies
@@ -52,14 +48,11 @@ export function useRecentFolders(): UseRecentFoldersResult {
       await localforage.setItem('recentFolders', updatedFolders);
       setRecentFolders(updatedFolders);
       console.log('Added/Updated folder:', updatedFolders);
-    } catch (error) {
-      console.error('Error saving recent folder:', error);
-    }
+    } catch (error) {}
   };
 
   const currentFolder = useMemo(() => {
     const folder = recentFolders.find((f) => f.id === currentFolderId);
-    console.log('Current folder:', folder);
     return folder;
   }, [recentFolders, currentFolderId]);
 
