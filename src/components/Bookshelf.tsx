@@ -51,7 +51,9 @@ export const Bookshelf: FC<BookshelfProps> = ({
     >
       {selectedSeries ? (
         <BookGrid
-          books={series.find((s) => s.name === selectedSeries)?.books || []}
+          series={series}
+          folderId={folderId}
+          selectedSeries={selectedSeries}
         />
       ) : (
         <SeriesGrid series={series} folderId={folderId} />

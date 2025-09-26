@@ -1,11 +1,11 @@
-import { useState, useEffect, useMemo } from 'react';
+import type { Series } from '@/components/SeriesGrid';
 import { type BookMetadata, getBooksInFolder } from '@/lib/epubUtils';
-import type { SeriesGroup } from '@/components/SeriesGrid';
+import { useEffect, useMemo, useState } from 'react';
 
 interface UseBookshelfResult {
   books: BookMetadata[];
   filteredBooks: BookMetadata[];
-  series: SeriesGroup[];
+  series: Series[];
   loading: boolean;
   error: string | null;
   refreshBooks: () => Promise<void>;
@@ -14,7 +14,7 @@ interface UseBookshelfResult {
 export function useBookshelf(
   folderId: string,
   searchQuery: string = '',
-  initialSeries?: string
+  initialSeries?: string,
 ): UseBookshelfResult {
   const [books, setBooks] = useState<BookMetadata[]>([]);
   const [loading, setLoading] = useState(true);
@@ -40,15 +40,17 @@ export function useBookshelf(
     }
   }, [folderId]);
 
-  const filteredBooks = useMemo(() => 
-    searchQuery
-      ? books.filter(book =>
-          book.title?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-          book.author?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-          book.series?.toLowerCase().includes(searchQuery.toLowerCase())
-        )
-      : books,
-    [books, searchQuery]
+  const filteredBooks = useMemo(
+    () =>
+      searchQuery
+        ? books.filter(
+            (book) =>
+              book.title?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+              book.author?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+              book.series?.toLowerCase().includes(searchQuery.toLowerCase()),
+          )
+        : books,
+    [books, searchQuery],
   );
 
   const series = useMemo(() => {
@@ -88,6 +90,6 @@ export function useBookshelf(
     series,
     loading,
     error,
-    refreshBooks: loadBooks
+    refreshBooks: loadBooks,
   };
 }

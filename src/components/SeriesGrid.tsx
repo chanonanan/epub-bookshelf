@@ -2,22 +2,21 @@ import type { BookMetadata } from '@/lib/epubUtils';
 import { useNavigate } from 'react-router-dom';
 import { BookCard } from './BookCard';
 
-export interface SeriesGroup {
+export interface Series {
   name: string;
   books: BookMetadata[];
   coverBlob?: Blob;
 }
 
-export const SeriesGrid = ({
-  series,
-  folderId,
-}: {
-  series: SeriesGroup[];
+interface SeriesGridProps {
+  series: Series[];
   folderId: string;
-}) => {
+}
+
+export const SeriesGrid = ({ series, folderId }: SeriesGridProps) => {
   const navigate = useNavigate();
   return (
-    <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-6">
+    <div className="grid grid-cols-3 sm:grid-cols-4 lg:grid-cols-5 gap-4">
       {series.map((group) => (
         <BookCard
           key={group.name}

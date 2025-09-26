@@ -1,27 +1,51 @@
 import type { BookMetadata } from '@/lib/epubUtils';
-import { useNavigate, useParams } from 'react-router-dom';
+import { useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { BookCard } from './BookCard';
+import type { Series } from './SeriesGrid';
 // import { Grid, type CellComponentProps } from 'react-window';
 
 const preloadBookDetailsPage = () => {
   import('../pages/BookDetailsPage');
 };
 
-export const BookGrid = ({ books }: { books: BookMetadata[] }) => {
+interface BookGridProps {
+  selectedSeries: string;
+  folderId: string;
+  series: Series[];
+}
+
+export const BookGrid = ({
+  series,
+  folderId,
+  selectedSeries,
+}: BookGridProps) => {
   const navigate = useNavigate();
-  const { folderId, series } = useParams<{
-    folderId: string;
-    series: string;
-  }>();
+  const [books, setBooks] = useState<BookMetadata[]>([]);
+
+  useEffect(() => {
+    const selected = series.find((s) => s.name === selectedSeries);
+    if (selected) {
+      setBooks(selected.books);
+    }
+  }, [series, selectedSeries]);
 
   return (
-    <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-6">
+    <div className="grid grid-cols-3 sm:grid-cols-4 lg:grid-cols-5 gap-4">
       {books.map((book) => (
         <BookCard
           key={book.id}
-          book={book}
+          book={{
+            id: book.id,
+            title: book.title,
+            author: book.author,
+            coverBlob: book.coverBlob,
+            badge: book.seriesIndex,
+          }}
           onHover={preloadBookDetailsPage}
-          onClick={() => navigate(`/book/${folderId}/${series}/${book.id}`)}
+          onClick={() =>
+            navigate(`/book/${folderId}/${selectedSeries}/${book.id}`)
+          }
         />
       ))}
     </div>

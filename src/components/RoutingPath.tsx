@@ -54,15 +54,17 @@ export function RoutingPath() {
   }, [bookId, folderId, selectedSeries]);
 
   return (
-    <div className="mb-6 flex items-center justify-between sticky top-0 bg-background z-10 py-4">
-      <Breadcrumb>
+    <div className="md:mb-6 flex items-center justify-between sticky top-0 bg-background z-10 p-4">
+      <Breadcrumb className="max-w-full overflow-x-auto">
         <BreadcrumbList>
           {items.map((item, index) => (
             <Fragment key={index}>
-              <BreadcrumbItem>
+              <BreadcrumbItem className="max-w-1/2 sm:max-w-full">
                 <BreadcrumbLink asChild>
                   {index === items.length - 1 ? (
-                    <BreadcrumbPage>{item.name}</BreadcrumbPage>
+                    <BreadcrumbPage className="text-sm truncate">
+                      {item.name}
+                    </BreadcrumbPage>
                   ) : (
                     <Link to={item.path}>{item.name}</Link>
                   )}

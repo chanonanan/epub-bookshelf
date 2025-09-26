@@ -31,7 +31,7 @@ export const BookCard = ({ book, onClick, onHover }: BookCardProps) => {
       className="hover:bg-accent transition-colors cursor-pointer relative"
     >
       <CardHeader className="p-0">
-        <div className="relative w-full aspect-[2/3] bg-muted rounded-t-lg overflow-hidden">
+        <div className="relative w-full aspect-[2/3] bg-muted rounded-md md:rounded-t-lg overflow-hidden">
           <LazyImage
             src={book.coverBlob}
             alt={`${book.title} cover`}

@@ -50,7 +50,7 @@ export default function BookDetailsPage() {
 
   return (
     <div>
-      <div className="max-w-4xl mx-auto">
+      <div className="max-w-4xl mx-auto pb-8">
         <RoutingPath />
         <div className="flex flex-col md:flex-row gap-8">
           <div className="flex-shrink-0 w-full md:w-64">
