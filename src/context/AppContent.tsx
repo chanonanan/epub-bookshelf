@@ -1,7 +1,7 @@
 import { ModeToggle } from '@/components/ModeToggle';
 import { useLoading } from '@/hooks/useLoading';
 import { Suspense, lazy, useEffect, useState } from 'react';
-import { Outlet, Route, Routes } from 'react-router-dom';
+import { Navigate, Outlet, Route, Routes } from 'react-router-dom';
 import { Navbar } from '../components/Navbar';
 
 // lazy imports (code-splitting)
@@ -17,6 +17,7 @@ export const AppContent = () => {
     <div className="min-h-screen flex flex-col">
       <Suspense fallback={<LoadingRoute />}>
         <Routes>
+          {/* Base routes */}
           <Route
             path="/"
             element={
@@ -32,6 +33,10 @@ export const AppContent = () => {
               </>
             }
           />
+          {/* Redirect empty path to / */}
+          <Route path="" element={<Navigate to="/" replace />} />
+
+          {/* Other routes */}
           <Route
             element={
               <>

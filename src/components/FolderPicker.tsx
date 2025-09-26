@@ -2,7 +2,7 @@ import { useRecentFolders } from '@/hooks/useRecentFolders';
 import { getTokens } from '@/lib/googleDrive';
 import { ChevronDown } from 'lucide-react';
 import React, { useCallback, useEffect, useState } from 'react';
-import { useLocation, useNavigate } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import '../types/google.d';
 import { Button, type ButtonProps } from './ui/button';
 import {
@@ -26,17 +26,8 @@ const getGooglePicker = (): GooglePickerNamespace => {
 const FolderPicker: React.FC<FolderPickerProps> = ({ className, variant }) => {
   const navigate = useNavigate();
   const [isPickerLoaded, setIsPickerLoaded] = useState(false);
-  const location = useLocation();
-  const [currentFolderId, setCurrentFolderId] = useState<string>();
-  const { currentFolder, addRecentFolder } = useRecentFolders(currentFolderId);
+  const { currentFolder, addRecentFolder } = useRecentFolders();
   const { recentFolders } = useRecentFolders(); // Get all recent folders for the dropdown
-
-  // Extract folderId from path
-  useEffect(() => {
-    // Match both /bookshelf/:folderId and /book/:folderId routes
-    const match = location.pathname.match(/\/(bookshelf|book)\/([^\/]+)/);
-    setCurrentFolderId(match ? match[2] : undefined);
-  }, [location]);
 
   const loadPicker = useCallback(() => {
     console.log('Attempting to load picker...');
@@ -54,8 +45,10 @@ const FolderPicker: React.FC<FolderPickerProps> = ({ className, variant }) => {
   }, []);
 
   const onFolderSelect = useCallback(
-    async (id: string, name: string) => {
-      await addRecentFolder(id, name);
+    async (id: string, name?: string) => {
+      if (name) {
+        await addRecentFolder(id, name);
+      }
       navigate(`/bookshelf/${id}`);
     },
     [navigate],
@@ -134,7 +127,7 @@ const FolderPicker: React.FC<FolderPickerProps> = ({ className, variant }) => {
         {recentFolders.map((folder) => (
           <DropdownMenuItem
             key={folder.id}
-            onClick={() => onFolderSelect(folder.id, folder.name)}
+            onClick={() => onFolderSelect(folder.id)}
             className="justify-between"
           >
             <span className="truncate">{folder.name}</span>

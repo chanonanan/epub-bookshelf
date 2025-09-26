@@ -1,7 +1,6 @@
 import { useRecentFolders } from '@/hooks';
 import { Search } from 'lucide-react';
-import { useEffect, useState, type FC } from 'react';
-import { useLocation } from 'react-router-dom';
+import { type FC } from 'react';
 import FolderPicker from './FolderPicker';
 import { ModeToggle } from './ModeToggle';
 
@@ -10,16 +9,7 @@ interface NavbarProps {
 }
 
 export const Navbar: FC<NavbarProps> = ({ onSearchChange }) => {
-  const location = useLocation();
-  const [currentFolderId, setCurrentFolderId] = useState<string>();
-  const { currentFolder } = useRecentFolders(currentFolderId);
-
-  // Extract folderId from path
-  useEffect(() => {
-    // Match both /bookshelf/:folderId and /book/:folderId routes
-    const match = location.pathname.match(/\/(bookshelf|book)\/([^\/]+)/);
-    setCurrentFolderId(match ? match[2] : undefined);
-  }, [location]);
+  const { currentFolder } = useRecentFolders();
 
   return (
     <header className="sticky top-0 z-40 w-full border-b border-border bg-background/95 backdrop-blur">
