@@ -1,14 +1,6 @@
 import type { BookMetadata } from '@/lib/epubUtils';
 import { useNavigate, useParams } from 'react-router-dom';
-import { Badge } from './ui/badge';
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from './ui/card';
-import { LazyImage } from './ui/lazy-image';
+import { BookCard } from './BookCard';
 // import { Grid, type CellComponentProps } from 'react-window';
 
 const preloadBookDetailsPage = () => {
@@ -25,37 +17,12 @@ export const BookGrid = ({ books }: { books: BookMetadata[] }) => {
   return (
     <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-6">
       {books.map((book) => (
-        <button
+        <BookCard
           key={book.id}
-          className="text-left focus:outline-none w-full"
-          onMouseEnter={preloadBookDetailsPage}
+          book={book}
+          onHover={preloadBookDetailsPage}
           onClick={() => navigate(`/book/${folderId}/${series}/${book.id}`)}
-        >
-          <Card className="hover:bg-accent transition-colors">
-            <CardHeader className="p-0">
-              <div className="relative w-full aspect-[2/3] bg-muted rounded-t-lg overflow-hidden">
-                <LazyImage
-                  src={book.coverBlob}
-                  alt={`${book.title} cover`}
-                  className="w-full h-full object-cover"
-                />
-                {book.seriesIndex! > 0 && (
-                  <Badge variant="default" className="absolute top-2 right-2">
-                    {book.seriesIndex}
-                  </Badge>
-                )}
-              </div>
-            </CardHeader>
-            <CardContent className="p-4">
-              <CardTitle className="line-clamp-2 text-base mb-1">
-                {book.title}
-              </CardTitle>
-              <CardDescription className="line-clamp-1">
-                {book.author}
-              </CardDescription>
-            </CardContent>
-          </Card>
-        </button>
+        />
       ))}
     </div>
   );

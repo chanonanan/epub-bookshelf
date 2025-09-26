@@ -2,6 +2,7 @@ import epub from 'epubjs';
 import JSZip from 'jszip';
 import localforage from 'localforage';
 import { downloadFile, listEpubFiles } from './googleDrive';
+import { resizeImageBlob } from './imageUtil';
 
 export interface BookMetadata {
   id: string;
@@ -146,7 +147,7 @@ export const extractBookInfo = async (
       }
 
       if (coverBlob) {
-        result.coverBlob = coverBlob;
+        result.coverBlob = await resizeImageBlob(coverBlob);
       }
     }
   } catch (error) {
@@ -213,35 +214,3 @@ export const getBooksInFolder = async (
 
   return results;
 };
-
-export async function createThumbnail(
-  blob: Blob,
-  maxWidth = 200,
-): Promise<string> {
-  return new Promise((resolve) => {
-    const img = new Image();
-    img.onload = () => {
-      const canvas = document.createElement('canvas');
-      const scale = maxWidth / img.width;
-      canvas.width = maxWidth;
-      canvas.height = img.height * scale;
-
-      const ctx = canvas.getContext('2d')!;
-      ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
-
-      // Convert to WebP for smaller size
-      canvas.toBlob(
-        (thumbnailBlob) => {
-          if (thumbnailBlob) {
-            resolve(URL.createObjectURL(thumbnailBlob));
-          } else {
-            resolve(URL.createObjectURL(blob)); // fallback
-          }
-        },
-        'image/webp',
-        0.7, // quality
-      );
-    };
-    img.src = URL.createObjectURL(blob);
-  });
-}
