@@ -8,7 +8,7 @@ import { LoadingProvider } from './context/LoadingContext';
 export default function App() {
   return (
     <ThemeProvider defaultTheme="dark" storageKey="vite-ui-theme">
-      <HashRouter basename="/epub-bookshelf">
+      <HashRouter>
         <LoadingProvider>
           <LoadingOverlay />
           <AppContent />
