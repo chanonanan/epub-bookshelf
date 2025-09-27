@@ -1,4 +1,4 @@
-import { useRecentFolders } from '@/hooks';
+import { useFolders } from '@/hooks';
 import { Search } from 'lucide-react';
 import { type FC } from 'react';
 import FolderPicker from './FolderPicker';
@@ -9,7 +9,7 @@ interface NavbarProps {
 }
 
 export const Navbar: FC<NavbarProps> = ({ onSearchChange }) => {
-  const { currentFolder } = useRecentFolders();
+  const { currentFolder } = useFolders();
 
   return (
     <header className="sticky top-0 z-40 w-full border-b border-border bg-background/95 backdrop-blur">

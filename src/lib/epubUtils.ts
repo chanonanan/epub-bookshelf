@@ -1,7 +1,7 @@
 import epub from 'epubjs';
 import JSZip from 'jszip';
 import localforage from 'localforage';
-import { downloadFile, listEpubFiles } from './googleDrive';
+import { FileUtil, FolderUtil } from './googleDrive';
 import { resizeImageBlob } from './imageUtil';
 
 export interface BookMetadata {
@@ -164,7 +164,15 @@ export const extractBookInfo = async (
 export const getMetadataById = async (
   fileId: string,
 ): Promise<BookMetadata | null> => {
-  return getMetadata({ id: fileId, name: '', mimeType: '', size: '' });
+  let metadata = await metadataCache.getItem<BookMetadata>(fileId);
+  if (!metadata) {
+    const epubBlob = await FileUtil.getFileById(fileId);
+    if (!epubBlob) return null;
+
+    metadata = await extractBookInfo(fileId, epubBlob);
+  }
+
+  return metadata;
 };
 
 /**
@@ -173,23 +181,21 @@ export const getMetadataById = async (
 export const getMetadata = async (
   file: DriveFile,
 ): Promise<BookMetadata | null> => {
-  let metadata = await metadataCache.getItem<BookMetadata>(file.id);
-  if (!metadata) {
-    const epubBlob = await downloadFile(file.id);
-    if (!epubBlob) return null;
-
-    metadata = await extractBookInfo(file.id, epubBlob);
+  const metadata = await getMetadataById(file.id);
+  if (metadata) {
+    metadata.fileSize = file.sizeBytes;
   }
 
-  metadata.fileSize = file.size;
   return metadata;
 };
 
 export const getBooksInFolder = async (
   folderId: string,
-  ignoreCache = false,
 ): Promise<BookMetadata[]> => {
-  const files = await listEpubFiles(folderId, ignoreCache);
+  const folder = await FolderUtil.getFolder(folderId);
+  if (!folder) return [];
+
+  const files = folder.files || [];
   const batchSize = 20;
   const results: BookMetadata[] = [];
 
@@ -214,3 +220,22 @@ export const getBooksInFolder = async (
 
   return results;
 };
+
+async function exportDb(): Promise<any> {
+  const all: Record<string, any> = {};
+  await metadataCache.iterate((value, key, _dbName) => {
+    all[key] = value;
+  });
+
+  for (const key in all) {
+    if (all[key].coverBlob instanceof Blob) {
+      // all[key].coverBlob = await blobToBase64(all[key].coverBlob);
+      delete all[key].coverBlob; // remove coverBlob to reduce size
+    }
+  }
+
+  console.log('Exported DB:', all);
+  console.log(JSON.stringify(all));
+}
+
+exportDb();

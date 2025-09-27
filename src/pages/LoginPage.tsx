@@ -2,7 +2,7 @@ import { useAuth } from '@/auth/AuthProvider';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { checkFolderAccess } from '@/lib/googleDrive';
+import { FolderUtil } from '@/lib/googleDrive';
 import { AlertCircle, Loader2Icon } from 'lucide-react';
 import React, { useEffect, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
@@ -32,7 +32,7 @@ const LoginPage: React.FC = () => {
       const match = from.match(/\/epub-bookshelf\/bookshelf\/([^/]+)/);
       if (match) {
         const folderId = match[1];
-        const hasAccess = await checkFolderAccess(folderId);
+        const hasAccess = await FolderUtil.checkFolderAccess(folderId);
         if (!hasAccess) {
           alert('You don’t have access to this folder.');
           navigate('/', { replace: true });
@@ -62,7 +62,7 @@ const LoginPage: React.FC = () => {
       const m = from.match(/\/epub-bookshelf\/bookshelf\/([^/]+)/);
       if (m && m[1]) {
         const folderId = m[1];
-        const has = await checkFolderAccess(folderId);
+        const has = await FolderUtil.checkFolderAccess(folderId);
         if (!has) {
           alert('You don’t have access to that folder');
           navigate('/', { replace: true });

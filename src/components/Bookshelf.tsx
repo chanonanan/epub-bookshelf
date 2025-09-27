@@ -7,23 +7,22 @@ import { Button } from './ui/button';
 
 interface BookshelfProps {
   folderId: string;
-  initialSeries?: string;
+  selectedSeries?: string;
   searchQuery?: string;
 }
 
 export const Bookshelf: FC<BookshelfProps> = ({
   folderId,
-  initialSeries,
+  selectedSeries,
   searchQuery = '',
 }) => {
   const { series, loading, error, refreshBooks } = useBookshelf(
     folderId,
     searchQuery,
-    initialSeries,
+    selectedSeries,
   );
   const gridRef = useRef<HTMLDivElement>(null);
   const { setLoading } = useLoading();
-  const selectedSeries = initialSeries;
 
   useEffect(() => {
     if (loading) {
@@ -46,7 +45,7 @@ export const Bookshelf: FC<BookshelfProps> = ({
   return (
     <div
       ref={gridRef}
-      className="container mx-auto px-4 overflow-y-auto scroll-smooth"
+      className="mx-auto px-4 overflow-y-auto scroll-smooth"
       style={{ scrollPaddingTop: '1rem' }}
     >
       {selectedSeries ? (

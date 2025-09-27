@@ -1,5 +1,6 @@
 import { useAuth } from '@/auth/AuthProvider';
-import { useRecentFolders } from '@/hooks/useRecentFolders';
+import { useFolders } from '@/hooks';
+import { FolderUtil } from '@/lib/googleDrive';
 import { ChevronDown } from 'lucide-react';
 import React, { useCallback, useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
@@ -26,8 +27,7 @@ const getGooglePicker = (): GooglePickerNamespace => {
 const FolderPicker: React.FC<FolderPickerProps> = ({ className, variant }) => {
   const navigate = useNavigate();
   const [isPickerLoaded, setIsPickerLoaded] = useState(false);
-  const { currentFolder, addRecentFolder } = useRecentFolders();
-  const { recentFolders } = useRecentFolders(); // Get all recent folders for the dropdown
+  const { allFolders, currentFolder } = useFolders();
   const { token } = useAuth();
 
   const loadPicker = useCallback(() => {
@@ -45,11 +45,9 @@ const FolderPicker: React.FC<FolderPickerProps> = ({ className, variant }) => {
   }, []);
 
   const onFolderSelect = useCallback(
-    async (id: string, name?: string) => {
-      if (name) {
-        await addRecentFolder(id, name);
-      }
-      navigate(`/bookshelf/${id}`);
+    async (folder: DriveFile) => {
+      await FolderUtil.createFolder(folder);
+      navigate(`/bookshelf/${folder.id}`);
     },
     [navigate],
   );
@@ -99,7 +97,7 @@ const FolderPicker: React.FC<FolderPickerProps> = ({ className, variant }) => {
           if (data.action === picker.Action.PICKED && data.docs?.length) {
             const folder = data.docs[0];
             console.log('Selected folder:', folder);
-            onFolderSelect(folder.id, folder.name);
+            onFolderSelect(folder);
           }
         })
         .build();
@@ -112,32 +110,44 @@ const FolderPicker: React.FC<FolderPickerProps> = ({ className, variant }) => {
   }, [isPickerLoaded, onFolderSelect, token]);
 
   return (
-    <DropdownMenu>
-      <DropdownMenuTrigger asChild>
-        <Button variant={variant || 'ghost'} className={className}>
-          {currentFolder?.name || 'Select Folder'}{' '}
-          <ChevronDown className="h-4 w-4" />
+    <>
+      {allFolders.length ? (
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button variant={variant || 'ghost'} className={className}>
+              {currentFolder?.name || 'Select Folder'}{' '}
+              <ChevronDown className="h-4 w-4" />
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="start" className="w-[240px]">
+            {allFolders.map((folder) => (
+              <DropdownMenuItem
+                key={folder.id}
+                onClick={() => onFolderSelect(folder)}
+                className="justify-between"
+              >
+                <span className="truncate">{folder.name}</span>
+                <span className="text-xs text-muted-foreground ml-2">
+                  {new Date(folder.lastUpdate).toLocaleDateString()}
+                </span>
+              </DropdownMenuItem>
+            ))}
+            {allFolders.length > 0 && <DropdownMenuSeparator />}
+            <DropdownMenuItem onClick={showPicker}>
+              Select Another Folder
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
+      ) : (
+        <Button
+          variant={variant || 'ghost'}
+          className={className}
+          onClick={showPicker}
+        >
+          Select Folder
         </Button>
-      </DropdownMenuTrigger>
-      <DropdownMenuContent align="start" className="w-[240px]">
-        {recentFolders.map((folder) => (
-          <DropdownMenuItem
-            key={folder.id}
-            onClick={() => onFolderSelect(folder.id)}
-            className="justify-between"
-          >
-            <span className="truncate">{folder.name}</span>
-            <span className="text-xs text-muted-foreground ml-2">
-              {new Date(folder.lastUpdate).toLocaleDateString()}
-            </span>
-          </DropdownMenuItem>
-        ))}
-        {recentFolders.length > 0 && <DropdownMenuSeparator />}
-        <DropdownMenuItem onClick={showPicker}>
-          Select Another Folder
-        </DropdownMenuItem>
-      </DropdownMenuContent>
-    </DropdownMenu>
+      )}
+    </>
   );
 };
 

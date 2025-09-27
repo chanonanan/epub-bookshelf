@@ -16,3 +16,24 @@ export async function resizeImageBlob(
     canvas.toBlob((resized) => resolve(resized!), 'image/webp', 0.7),
   );
 }
+
+export async function blobToBase64(blob: Blob): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onloadend = () => resolve(reader.result as string);
+    reader.onerror = reject;
+    reader.readAsDataURL(blob); // gives "data:image/png;base64,...."
+  });
+}
+
+export function base64ToBlob(base64: string): Blob {
+  const parts = base64.split(',');
+  const mime = parts[0].match(/:(.*?);/)?.[1] || '';
+  const byteString = atob(parts[1]);
+  const arrayBuffer = new ArrayBuffer(byteString.length);
+  const intArray = new Uint8Array(arrayBuffer);
+  for (let i = 0; i < byteString.length; i++) {
+    intArray[i] = byteString.charCodeAt(i);
+  }
+  return new Blob([intArray], { type: mime });
+}

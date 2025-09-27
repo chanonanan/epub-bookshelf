@@ -1,6 +1,10 @@
-import { useState, useEffect } from 'react';
-import { type BookMetadata, getMetadataById, extractBookInfo } from '@/lib/epubUtils';
-import { downloadFile } from '@/lib/googleDrive';
+import {
+  type BookMetadata,
+  extractBookInfo,
+  getMetadataById,
+} from '@/lib/epubUtils';
+import { FileUtil } from '@/lib/googleDrive';
+import { useEffect, useState } from 'react';
 
 interface UseBookResult {
   book: BookMetadata | null;
@@ -49,7 +53,7 @@ export function useBook(bookId: string | undefined): UseBookResult {
     setError(null);
 
     try {
-      const blob = await downloadFile(book.id);
+      const blob = await FileUtil.getFileById(book.id);
       if (!blob) {
         throw new Error('Failed to download EPUB file');
       }
@@ -71,7 +75,7 @@ export function useBook(bookId: string | undefined): UseBookResult {
     setError(null);
 
     try {
-      const blob = await downloadFile(book.id);
+      const blob = await FileUtil.getFileById(book.id);
       if (!blob) {
         throw new Error('Failed to download file');
       }
@@ -97,11 +101,11 @@ export function useBook(bookId: string | undefined): UseBookResult {
     }
   };
 
-  return { 
-    book, 
-    isLoading: isLoading || isRefreshing, 
-    error, 
+  return {
+    book,
+    isLoading: isLoading || isRefreshing,
+    error,
     refreshMetadata,
-    downloadBook
+    downloadBook,
   };
 }

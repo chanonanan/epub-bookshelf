@@ -22,7 +22,7 @@ export default function SeriesPage({ searchQuery }: SeriesPageProps) {
       <RoutingPath />
       <Bookshelf
         folderId={folderId}
-        initialSeries={selectedSeries || ''}
+        selectedSeries={selectedSeries || ''}
         searchQuery={searchQuery}
       />
     </div>

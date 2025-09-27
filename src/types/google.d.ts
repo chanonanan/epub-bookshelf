@@ -28,6 +28,18 @@ declare global {
     docs?: Array<{
       id: string;
       name: string;
+      mimeType: string;
+      description: string;
+      url: string;
+      iconUrl: string;
+      embedUrl: string;
+      sizeBytes: string;
+      lastEditedUtc: string;
+      createdUtc: string;
+      isShared: boolean;
+      serviceId: string;
+      type: string;
+      parentId: string;
     }>;
   }
 
@@ -57,7 +69,22 @@ declare global {
     id: string;
     name: string;
     mimeType: string;
-    size: string;
+    description: string;
+    url: string;
+    iconUrl: string;
+    embedUrl: string;
+    sizeBytes: string;
+    lastEditedUtc: string;
+    createdUtc: string;
+    isShared: boolean;
+    serviceId: string;
+    type: string;
+    parentId: string;
+  }
+
+  interface DriveFolder extends DriveFile {
+    lastUpdate: number;
+    files: DriveFile[];
   }
 
   interface TokenResponse {
