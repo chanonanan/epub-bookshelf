@@ -32,7 +32,7 @@ export const BookGrid = ({
 
   return (
     <div className="grid grid-cols-3 sm:grid-cols-4 lg:grid-cols-5 gap-4">
-      {books.map((book) => (
+      {books.map((book, index) => (
         <BookCard
           key={book.id}
           book={{
@@ -42,6 +42,7 @@ export const BookGrid = ({
             coverBlob: book.coverBlob,
             badge: book.seriesIndex,
           }}
+          index={index}
           onHover={preloadBookDetailsPage}
           onClick={() =>
             navigate(`/book/${folderId}/${selectedSeries}/${book.id}`)

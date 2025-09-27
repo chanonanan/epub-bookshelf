@@ -18,11 +18,12 @@ interface BookMetadata {
 
 interface BookCardProps {
   book: BookMetadata;
+  index: number;
   onClick?: () => void;
   onHover?: () => void;
 }
 
-export const BookCard = ({ book, onClick, onHover }: BookCardProps) => {
+export const BookCard = ({ book, index, onClick, onHover }: BookCardProps) => {
   return (
     <Card
       key={book.id}
@@ -36,6 +37,7 @@ export const BookCard = ({ book, onClick, onHover }: BookCardProps) => {
             src={book.coverBlob}
             alt={`${book.title} cover`}
             className="w-full h-full object-cover"
+            isLCP={index <= 5}
           />
           {book.badge && (
             <Badge variant="default" className="absolute top-2 right-2">

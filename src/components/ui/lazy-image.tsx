@@ -4,9 +4,15 @@ interface LazyImageProps {
   src: Blob | undefined;
   alt: string;
   className?: string;
+  isLCP?: boolean;
 }
 
-export const LazyImage: FC<LazyImageProps> = ({ src, alt, className }) => {
+export const LazyImage: FC<LazyImageProps> = ({
+  src,
+  alt,
+  className,
+  isLCP,
+}) => {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState(false);
 
@@ -17,7 +23,9 @@ export const LazyImage: FC<LazyImageProps> = ({ src, alt, className }) => {
         <img
           src={src ? URL.createObjectURL(src) : undefined}
           alt={alt}
-          loading="lazy"
+          loading={isLCP ? 'eager' : 'lazy'}
+          fetchPriority={isLCP ? 'high' : 'auto'}
+          decoding="async"
           className={className}
           onLoad={() => setIsLoading(false)}
           onError={() => {
