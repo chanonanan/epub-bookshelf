@@ -1,4 +1,5 @@
 import { Layout } from '@/components/layout/Layout';
+import { PrivateRoute } from '@/components/layout/PrivateRoute';
 import { ThemeProvider } from '@/components/ThemeProvider';
 import { db } from '@/db/schema';
 import BookDetailsPage from '@/pages/BookDetailsPage';
@@ -8,7 +9,6 @@ import LoginPage from '@/pages/LoginPage';
 import ReaderPage from '@/pages/ReaderPage';
 import { useEffect } from 'react';
 import { HashRouter, Navigate, Route, Routes } from 'react-router-dom';
-import './App.css';
 import { ProviderProvider } from './providers';
 
 export default function App() {
@@ -27,33 +27,41 @@ export default function App() {
             <Route
               path="/:provider"
               element={
-                <Layout>
-                  <FoldersPage />
-                </Layout>
+                <PrivateRoute>
+                  <Layout>
+                    <FoldersPage />
+                  </Layout>
+                </PrivateRoute>
               }
             />
             <Route
               path="/:provider/folder/:folderId"
               element={
-                <Layout>
-                  <BookshelfPage />
-                </Layout>
+                <PrivateRoute>
+                  <Layout>
+                    <BookshelfPage />
+                  </Layout>
+                </PrivateRoute>
               }
             />
             <Route
               path="/:provider/file/:fileId"
               element={
-                <Layout>
-                  <BookDetailsPage />
-                </Layout>
+                <PrivateRoute>
+                  <Layout>
+                    <BookDetailsPage />
+                  </Layout>
+                </PrivateRoute>
               }
             />
             <Route
               path="/:provider/file/:fileId/reader"
               element={
-                <Layout>
-                  <ReaderPage />
-                </Layout>
+                <PrivateRoute>
+                  <Layout>
+                    <ReaderPage />
+                  </Layout>
+                </PrivateRoute>
               }
             />
 
