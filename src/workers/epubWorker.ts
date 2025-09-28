@@ -132,36 +132,6 @@ async function extractMetadataFromEpub(arrayBuffer: ArrayBuffer) {
   };
 }
 
-async function compressInWorker(
-  blob: Blob,
-): Promise<{ blob: Blob; compressed: boolean }> {
-  if (
-    typeof OffscreenCanvas !== 'undefined' &&
-    typeof createImageBitmap !== 'undefined'
-  ) {
-    try {
-      const bitmap = await createImageBitmap(blob);
-      const canvas = new OffscreenCanvas(bitmap.width, bitmap.height);
-      const ctx = canvas.getContext('2d')!;
-      ctx.drawImage(bitmap, 0, 0);
-
-      const compressed = await canvas.convertToBlob({
-        type: 'image/webp',
-        quality: 0.7,
-      });
-
-      return { blob: compressed!, compressed: true };
-    } catch (err) {
-      console.warn(
-        '[Worker] OffscreenCanvas compression failed, fallback:',
-        err,
-      );
-      return { blob, compressed: false };
-    }
-  }
-  return { blob, compressed: false };
-}
-
 // Worker handler
 self.onmessage = async (e: MessageEvent) => {
   const { type, provider, fileId, accessToken } = e.data;
@@ -198,21 +168,7 @@ self.onmessage = async (e: MessageEvent) => {
 
       // Post cover separately
       if (coverBlob) {
-        const { blob: finalCover, compressed } =
-          await compressInWorker(coverBlob);
-
-        if (compressed) {
-          await db.files.update([provider, fileId], {
-            coverId: fileId,
-          });
-
-          self.postMessage({
-            type: 'done',
-          });
-          return;
-        }
-
-        const coverArray = await finalCover.arrayBuffer();
+        const coverArray = await coverBlob.arrayBuffer();
         self.postMessage(
           {
             type: 'cover',
