@@ -6,7 +6,13 @@ import { useEffect, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { LazyImage } from '../common/LazyImage';
 
-export function BookCard({ file, index }: { file: File; index: number }) {
+interface BookCardProps {
+  file: File;
+  view: 'grid' | 'list';
+  index: number;
+}
+
+export function BookCard({ file, index, view }: BookCardProps) {
   const { provider } = useParams<{ provider: string }>();
 
   // Watch cover blob in Dexie
@@ -50,6 +56,34 @@ export function BookCard({ file, index }: { file: File; index: number }) {
 
   const statusLabel = statusMap[file.status] ?? null;
 
+  if (view === 'list') {
+    return (
+      <li
+        key={file.id}
+        className="relative group border rounded px-3 py-2 flex justify-between items-center gap-2 max-w-full"
+      >
+        <LazyImage
+          isLCP={index < 5}
+          src={coverSrc}
+          alt={title}
+          className={`h-[50px] aspect-[2/3] object-cover rounded transition-opacity duration-500 ${
+            loaded ? 'opacity-100' : 'opacity-0'
+          }`}
+          onLoad={() => setLoaded(true)}
+        />
+        <div className="flex flex-col flex-1 overflow-auto">
+          <h3 className="text-sm font-semibold truncate">{title}</h3>
+          <p className="text-xs text-gray-500 truncate">{author}</p>
+        </div>
+        {statusLabel && (
+          <span className={`text-xs mt-1 ${statusLabel.className}`}>
+            {statusLabel.text}
+          </span>
+        )}
+      </li>
+    );
+  }
+
   return (
     <Link
       to={`/${provider}/file/${file.id}`}
@@ -59,7 +93,7 @@ export function BookCard({ file, index }: { file: File; index: number }) {
         isLCP={index < 5}
         src={coverSrc}
         alt={title}
-        className={`w-full h-40 object-cover rounded mb-2 transition-opacity duration-500 ${
+        className={`w-full aspect-[2/3] max-h-[300px] object-cover rounded mb-2 transition-opacity duration-500 ${
           loaded ? 'opacity-100' : 'opacity-0'
         }`}
         onLoad={() => setLoaded(true)}

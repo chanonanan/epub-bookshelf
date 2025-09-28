@@ -9,11 +9,9 @@ interface Props {
 export function BookList({ files, viewMode }: Props) {
   if (viewMode === 'list') {
     return (
-      <ul className="divide-y">
+      <ul className="flex flex-col gap-2">
         {files.map((file, index) => (
-          <li key={file.id} className="p-2">
-            <BookCard file={file} index={index} />
-          </li>
+          <BookCard file={file} index={index} view="list" />
         ))}
       </ul>
     );
@@ -22,7 +20,7 @@ export function BookList({ files, viewMode }: Props) {
   return (
     <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
       {files.map((file, index) => (
-        <BookCard key={file.id} file={file} index={index} />
+        <BookCard key={file.id} file={file} index={index} view="grid" />
       ))}
     </div>
   );

@@ -19,7 +19,7 @@ export function SearchBox() {
       placeholder="Search books..."
       value={value}
       onChange={(e) => updateSearch(e.target.value)}
-      className="px-3 py-2 border rounded w-64"
+      className="px-3 py-2 border rounded w-full md:w-64"
     />
   );
 }

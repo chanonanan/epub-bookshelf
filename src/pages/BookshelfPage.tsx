@@ -1,6 +1,13 @@
 import { GroupedShelf } from '@/components/bookshelf/GroupedShelf';
 import { SearchBox } from '@/components/common/SearchBox';
 import { ViewToggle } from '@/components/common/ViewToggle';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 import { db } from '@/db/schema';
 import { batchProcessor } from '@/services/batchProcessor';
 import type { File } from '@/types/models';
@@ -55,21 +62,22 @@ export default function BookshelfPage() {
   };
 
   return (
-    <div className="p-4 space-y-4">
+    <div className="space-y-4">
       {/* Controls */}
       <div className="flex flex-wrap justify-between items-center gap-2">
         <SearchBox />
-        <div className="flex gap-2">
-          <select
-            value={groupBy}
-            onChange={(e) => updateGroup(e.target.value as any)}
-            className="px-2 py-1 border rounded"
-          >
-            <option value="none">No Group</option>
-            <option value="author">Author</option>
-            <option value="series">Series</option>
-            <option value="tags">Tags</option>
-          </select>
+        <div className="flex gap-2 flex-1 justify-end">
+          <Select onValueChange={updateGroup}>
+            <SelectTrigger className="w-full md:max-w-[120px]">
+              <SelectValue placeholder="Group by..." />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="none">None</SelectItem>
+              <SelectItem value="author">Author</SelectItem>
+              <SelectItem value="series">Series</SelectItem>
+              <SelectItem value="tags">Tags</SelectItem>
+            </SelectContent>
+          </Select>
           <ViewToggle viewMode={viewMode} onChange={updateView} />
         </div>
       </div>
