@@ -67,7 +67,7 @@ export default function FoldersPage() {
   };
 
   return (
-    <div className="p-4">
+    <>
       <h2 className="text-xl">Folders</h2>
       <ul className="space-y-2">
         {folders?.map((f) => {
@@ -138,6 +138,6 @@ export default function FoldersPage() {
       >
         Add New Folder
       </Button>
-    </div>
+    </>
   );
 }

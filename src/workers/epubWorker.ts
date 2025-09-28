@@ -39,15 +39,17 @@ async function extractMetadataFromEpub(arrayBuffer: ArrayBuffer) {
     field: string,
     type: 'array' | 'string' | 'number' = 'string',
   ) => {
-    const fieldValues = Array.isArray(metadataNode[field])
+    let fieldValues = Array.isArray(metadataNode[field])
       ? metadataNode[field]
       : metadataNode[field]
         ? [metadataNode[field]]
         : [];
-    fieldValues.forEach((value: any) => {
+    fieldValues = fieldValues.map((value: any) => {
       if (typeof value === 'object') {
-        value = value['#text'] || '';
+        return value['#text'] || '';
       }
+
+      return value;
     });
     switch (type) {
       case 'array':
