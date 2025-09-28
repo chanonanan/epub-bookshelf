@@ -1,127 +1,116 @@
-import { useAuth } from '@/auth/AuthProvider';
+import { useProvider } from '@/app/providers';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { FolderUtil } from '@/lib/googleDrive';
 import { AlertCircle, Loader2Icon } from 'lucide-react';
-import React, { useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 
-const LoginPage: React.FC = () => {
-  const { login, token } = useAuth();
-  const navigate = useNavigate();
+export default function LoginPage() {
+  const { login, token, provider } = useProvider();
+  const naviagte = useNavigate();
   const location = useLocation();
-  const [isLoading, setIsLoading] = useState(false);
+  const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  // The place the user came from (if any)
-  const from = (location.state as { from?: Location })?.from?.pathname || '/';
+  const from =
+    (location.state as { from?: Location })?.from?.pathname ||
+    `/${provider}` ||
+    '/';
 
   useEffect(() => {
-    const verifyAndRedirect = async () => {
-      console.log('Verifying existing token...');
-      if (!token) return;
+    if (!token) return;
 
-      // If it's expired, ignore
-      if (token.expires_at < Date.now()) {
-        console.log('Token is expired');
-        return;
-      }
+    naviagte(from, { replace: true });
+  }, [token, from, naviagte]);
 
-      // If coming from a bookshelf folder, check access
-      const match = from.match(/\/epub-bookshelf\/bookshelf\/([^/]+)/);
-      if (match) {
-        const folderId = match[1];
-        const hasAccess = await FolderUtil.checkFolderAccess(folderId);
-        if (!hasAccess) {
-          alert('You don’t have access to this folder.');
-          navigate('/', { replace: true });
-          return;
-        }
-      }
-
-      // Otherwise redirect back
-      navigate(from, { replace: true });
-    };
-
-    verifyAndRedirect();
-  }, [token, from, navigate]);
-
-  // Handle login button click
-  const handleLogin = async () => {
+  const onLoginClick = async (provider: 'gdrive' | 'onedrive') => {
+    setLoading(true);
+    setError(null);
     try {
-      setIsLoading(true);
-      const token = await login();
-      if (!token) {
-        setError('Login failed. No token received.');
-        setIsLoading(false);
+      await login(provider);
+      if (token) {
+        naviagte(from, { replace: true });
         return;
       }
-
-      // If the “from” is a bookshelf URL, extract folderId and test access
-      const m = from.match(/\/epub-bookshelf\/bookshelf\/([^/]+)/);
-      if (m && m[1]) {
-        const folderId = m[1];
-        const has = await FolderUtil.checkFolderAccess(folderId);
-        if (!has) {
-          alert('You don’t have access to that folder');
-          navigate('/', { replace: true });
-          return;
-        }
-      }
-
-      // Redirect back to the original page
-      navigate(from, { replace: true });
     } catch (err) {
-      console.error('Login failed', err);
-      setError('Login failed. Please try again.');
-      setIsLoading(false);
-      // Show error UI
+      console.error('Login error:', err);
     }
+
+    setError('Login failed. Please try again.');
+    setLoading(false);
   };
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle className="flex items-center space-x-2">
-          <span>Connect Google Drive</span>
-        </CardTitle>
-      </CardHeader>
-      <CardContent className="space-y-4">
-        <p className="text-sm text-muted-foreground">
-          Connect your Google Drive to access and organize your EPUB book
-          collection.
-        </p>
+    // <div className="flex flex-col items-center justify-center h-screen gap-4">
+    //   <h1 className="text-2xl font-bold">📚 EPUB Bookshelf</h1>
+    //   <button className="btn-primary" onClick={() => login('gdrive')}>
+    //     Login with Google Drive
+    //   </button>
+    //   <button className="btn-secondary" onClick={() => login('onedrive')}>
+    //     Login with OneDrive
+    //   </button>
+    // </div>
+    <div className="flex flex-col items-center justify-center h-screen gap-4">
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center space-x-2">
+            <span>Login</span>
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <p className="text-sm text-muted-foreground">
+            Connect your Cloud Storae to access and organize your EPUB book
+            collection.
+          </p>
 
-        {error && (
-          <Alert variant="destructive">
-            <AlertCircle className="h-4 w-4" />
-            <AlertDescription>{error}</AlertDescription>
-          </Alert>
-        )}
-
-        <Button onClick={handleLogin} disabled={isLoading} className="w-full">
-          {isLoading ? (
-            <>
-              <Loader2Icon className="animate-spin" />
-              Connecting...
-            </>
-          ) : (
-            <>Sign in with Google</>
+          {error && (
+            <Alert variant="destructive">
+              <AlertCircle className="h-4 w-4" />
+              <AlertDescription>{error}</AlertDescription>
+            </Alert>
           )}
-        </Button>
 
-        <div className="text-xs text-muted-foreground space-y-1">
-          <p>This app will request permission to:</p>
-          <ul className="list-disc list-inside space-y-1 ml-2">
-            <li>View your Google Drive files</li>
-            <li>Access EPUB files for reading metadata</li>
-            <li>Cache book metadata locally</li>
-          </ul>
-        </div>
-      </CardContent>
-    </Card>
+          <Button
+            onClick={() => onLoginClick('gdrive')}
+            disabled={loading}
+            className="w-full"
+          >
+            {loading ? (
+              <>
+                <Loader2Icon className="animate-spin" />
+                Connecting...
+              </>
+            ) : (
+              <>Login with Google Drive</>
+            )}
+          </Button>
+
+          <Button
+            onClick={() => onLoginClick('onedrive')}
+            disabled={loading}
+            className="w-full"
+          >
+            {loading ? (
+              <>
+                <Loader2Icon className="animate-spin" />
+                Connecting...
+              </>
+            ) : (
+              <>Login with OneDrive</>
+            )}
+          </Button>
+
+          <div className="text-xs text-muted-foreground space-y-1">
+            <p>This app will request permission to:</p>
+            <ul className="list-disc list-inside space-y-1 ml-2">
+              <li>View your files & folders</li>
+              <li>Access EPUB files for reading metadata</li>
+              <li>Cache book metadata locally</li>
+            </ul>
+          </div>
+        </CardContent>
+      </Card>
+    </div>
   );
-};
-
-export default LoginPage;
+}

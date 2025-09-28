@@ -1,6 +1,7 @@
 declare global {
   interface GooglePickerAction {
     PICKED: 'picked';
+    CANCEL: 'cancel';
   }
 
   interface GoogleDocsView {
@@ -74,12 +75,14 @@ declare global {
     iconUrl: string;
     embedUrl: string;
     sizeBytes: string;
+    size: string;
     lastEditedUtc: string;
     createdUtc: string;
     isShared: boolean;
     serviceId: string;
     type: string;
     parentId: string;
+    modifiedTime: string;
   }
 
   interface DriveFolder extends DriveFile {
