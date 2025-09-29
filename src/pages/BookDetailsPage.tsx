@@ -1,11 +1,10 @@
-import placeholderCover from '@/assets/placeholder.jpg';
 import { LazyImage } from '@/components/common/LazyImage';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { db } from '@/db/schema';
 import { useLiveQuery } from 'dexie-react-hooks';
 import DOMPurify from 'dompurify';
-import { useEffect, useMemo, useState } from 'react';
+import { useMemo } from 'react';
 import { Link, useParams } from 'react-router-dom';
 
 export default function BookDetailsPage() {
@@ -23,18 +22,6 @@ export default function BookDetailsPage() {
     () => (file?.coverId ? db.covers.get(file.coverId) : undefined),
     [file?.coverId],
   );
-
-  const [coverUrl, setCoverUrl] = useState<string | null>(null);
-
-  useEffect(() => {
-    if (cover?.blob) {
-      const url = URL.createObjectURL(cover.blob);
-      setCoverUrl(url);
-      return () => URL.revokeObjectURL(url);
-    } else {
-      setCoverUrl(null);
-    }
-  }, [cover?.blob]);
 
   const sanitizedDescription = useMemo(() => {
     if (!file?.metadata?.description) return '';
@@ -56,7 +43,7 @@ export default function BookDetailsPage() {
         <div className="flex-shrink-0 w-full md:w-64">
           {/* Cover image */}
           <LazyImage
-            src={coverUrl ?? placeholderCover}
+            srcBlob={cover?.blob}
             alt={file.metadata?.title ?? 'Book cover'}
             className="w-48 h-auto rounded shadow"
           />

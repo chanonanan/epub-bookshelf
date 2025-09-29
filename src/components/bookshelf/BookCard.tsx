@@ -1,8 +1,7 @@
-import placeholderCover from '@/assets/placeholder.jpg';
 import { db } from '@/db/schema';
 import type { File } from '@/types/models';
 import { useLiveQuery } from 'dexie-react-hooks';
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { LazyImage } from '../common/LazyImage';
 
@@ -21,22 +20,9 @@ export function BookCard({ file, index, view }: BookCardProps) {
     [file.coverId],
   );
 
-  // Create Object URL + cleanup
-  const [objectUrl, setObjectUrl] = useState<string | null>(null);
-  useEffect(() => {
-    if (cover?.blob) {
-      const url = URL.createObjectURL(cover.blob);
-      setObjectUrl(url);
-      return () => URL.revokeObjectURL(url);
-    } else {
-      setObjectUrl(null);
-    }
-  }, [cover?.blob]);
-
   // Fade-in effect
   const [loaded, setLoaded] = useState(false);
 
-  const coverSrc = objectUrl ?? placeholderCover;
   const title = file.metadata?.title ?? file.name;
   if (typeof title !== 'string') {
     throw new Error('Title is not valid', title);
@@ -64,7 +50,7 @@ export function BookCard({ file, index, view }: BookCardProps) {
       >
         <LazyImage
           isLCP={index < 5}
-          src={coverSrc}
+          srcBlob={cover?.blob}
           alt={title}
           className={`h-[50px] aspect-[2/3] object-cover rounded transition-opacity duration-500 ${
             loaded ? 'opacity-100' : 'opacity-0'
@@ -91,7 +77,7 @@ export function BookCard({ file, index, view }: BookCardProps) {
     >
       <LazyImage
         isLCP={index < 5}
-        src={coverSrc}
+        srcBlob={cover?.blob}
         alt={title}
         className={`w-full aspect-[2/3] max-h-[300px] object-cover rounded mb-2 transition-opacity duration-500 ${
           loaded ? 'opacity-100' : 'opacity-0'
