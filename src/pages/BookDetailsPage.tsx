@@ -35,21 +35,21 @@ export default function BookDetailsPage() {
   const folderId = file.folderId;
 
   return (
-    <div className="max-w-4xl mx-auto py-2 px-4">
-      <h1 className="text-xl font-bold mb-4">
+    <div className="container mx-auto py-2 px-4">
+      <h1 className="text-center md:text-left text-xl font-bold mb-4">
         {file.metadata?.title ?? file.name}
       </h1>
       <div className="flex flex-col md:flex-row gap-8">
-        <div className="flex-shrink-0 w-full md:w-64">
+        <div className="flex flex-col items-center mx-0 flex-shrink-0 w-full md:w-64">
           {/* Cover image */}
           <LazyImage
             id={file.id}
             srcBlob={cover?.blob}
             alt={file.metadata?.title ?? 'Book cover'}
-            className="w-48 h-auto rounded shadow"
+            className="w-[70%] md:w-48 h-auto rounded shadow"
           />
           {/* Actions */}
-          <div className="flex flex-col gap-2 mt-4">
+          <div className="flex flex-col gap-2 mt-4 w-full">
             <Button variant="default" className="w-full">
               Download EPUB
             </Button>
@@ -62,90 +62,93 @@ export default function BookDetailsPage() {
           </div>
         </div>
         {/* Metadata */}
-        <div className="flex-grow">
-          {/* Authors */}
-          <div className="flex  mb-2">
-            <span className="font-semibold w-[80px]">Author:</span>
-            {file.metadata?.author?.length && (
-              <div>
-                {file.metadata.author.map((a) => (
-                  <Badge key={a}>
+        <div className="flex-grow text-sm">
+          <table className="table-auto">
+            <tbody>
+              {/* Authors */}
+              {file.metadata?.author?.length ? (
+                <tr>
+                  <td className="font-semibold pr-4 align-top">Author:</td>
+                  <td className="space-x-2">
+                    {file.metadata.author.map((a) => (
+                      <Link
+                        className="underline"
+                        key={a}
+                        to={`/${provider}/folder/${folderId}?author=${encodeURIComponent(a)}`}
+                      >
+                        {a}
+                      </Link>
+                    ))}
+                  </td>
+                </tr>
+              ) : null}
+
+              {/* Series */}
+              {file.metadata?.series && (
+                <tr>
+                  <td className="font-semibold pr-4 align-top">Series:</td>
+                  <td>
                     <Link
-                      to={`/${provider}/folder/${folderId}?author=${encodeURIComponent(
-                        a,
+                      className="underline"
+                      to={`/${provider}/folder/${folderId}?series=${encodeURIComponent(
+                        file.metadata.series,
                       )}`}
                     >
-                      {a}
+                      {file.metadata.series}
                     </Link>
-                  </Badge>
-                ))}
-              </div>
-            )}
-          </div>
+                  </td>
+                </tr>
+              )}
 
-          {/* Series */}
-          {file.metadata?.series && (
-            <div className="flex mb-2">
-              <span className="font-semibold w-[80px]">Series:</span>
-              <div>
-                <Badge>
-                  <Link
-                    to={`/${provider}/folder/${folderId}?series=${encodeURIComponent(
-                      file.metadata.series,
-                    )}`}
-                  >
-                    {file.metadata.series}
-                  </Link>
-                </Badge>
-              </div>
-            </div>
-          )}
+              {/* Language */}
+              <tr>
+                <td className="font-semibold pr-4 align-top">Language:</td>
+                <td>{file.metadata?.language ?? 'N/A'}</td>
+              </tr>
 
-          {/* Tags */}
-          {file.metadata?.tags?.length ? (
-            <div className="flex mb-2">
-              <span className="font-semibold w-[80px]">Tags:</span>{' '}
-              <div className="flex gap-2">
-                {file.metadata.tags.map((tag) => (
-                  <Badge key={tag}>
-                    <Link
-                      to={`/${provider}/folder/${folderId}?tag=${encodeURIComponent(
-                        tag,
-                      )}`}
-                    >
-                      {tag}
-                    </Link>
-                  </Badge>
-                ))}
-              </div>
-            </div>
-          ) : null}
+              {/* Publisher */}
+              <tr>
+                <td className="font-semibold pr-4 align-top">Publisher:</td>
+                <td>{file.metadata?.publisher ?? 'N/A'}</td>
+              </tr>
 
-          <div className="flex mb-2">
-            <span className="font-semibold w-[80px]">Language:</span>{' '}
-            {file.metadata?.language ?? 'N/A'}
-          </div>
-          <div className="flex mb-2">
-            <span className="font-semibold w-[80px]">Publisher:</span>{' '}
-            {file.metadata?.publisher ?? 'N/A'}
-          </div>
-          <div className="flex mb-2">
-            <span className="font-semibold w-[80px]">Size:</span>{' '}
-            {file.size
-              ? `${(file.size / 1024 / 1024).toFixed(2)} MB`
-              : 'Unknown'}
-          </div>
+              {/* Size */}
+              <tr>
+                <td className="font-semibold pr-4 align-top">Size:</td>
+                <td>
+                  {file.size
+                    ? `${(file.size / 1024 / 1024).toFixed(2)} MB`
+                    : 'Unknown'}
+                </td>
+              </tr>
+            </tbody>
+          </table>
 
           {/* Description */}
           {sanitizedDescription && (
-            <div className="mb-2">
-              <span className="font-semibold mb-2">Description</span>
+            <section>
+              <span className="font-semibold block mb-2">Description</span>
               <div
                 className="text-muted-foreground text-sm"
                 dangerouslySetInnerHTML={{ __html: sanitizedDescription }}
               />
-            </div>
+            </section>
           )}
+
+          {/* Tags */}
+          {file.metadata?.tags?.length ? (
+            <section className="flex gap-2 flex-wrap mt-4">
+              {file.metadata.tags.map((tag) => (
+                <Badge key={tag} variant="outline">
+                  <Link
+                    to={`/${provider}/folder/${folderId}?tag=${encodeURIComponent(tag)}`}
+                  >
+                    {tag}
+                  </Link>
+                </Badge>
+              ))}
+            </section>
+          ) : null}
         </div>
       </div>
     </div>
