@@ -62,7 +62,7 @@ export default function BookshelfPage() {
   };
 
   return (
-    <div className="space-y-4">
+    <div className="flex flex-1 flex-col space-y-4 container">
       {/* Controls */}
       <div className="flex flex-wrap justify-between items-center gap-2">
         <SearchBox />

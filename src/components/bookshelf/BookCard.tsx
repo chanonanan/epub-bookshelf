@@ -49,6 +49,7 @@ export function BookCard({ file, index, view }: BookCardProps) {
         className="relative group border rounded px-3 py-2 flex justify-between items-center gap-2 max-w-full"
       >
         <LazyImage
+          id={file.id}
           isLCP={index < 5}
           srcBlob={cover?.blob}
           alt={title}
@@ -76,10 +77,11 @@ export function BookCard({ file, index, view }: BookCardProps) {
       className="flex flex-col p-2 border rounded shadow hover:shadow-md transition"
     >
       <LazyImage
+        id={file.id}
         isLCP={index < 5}
         srcBlob={cover?.blob}
         alt={title}
-        className={`w-full aspect-[2/3] max-h-[300px] object-cover rounded mb-2 transition-opacity duration-500 ${
+        className={`w-full aspect-[2/3] max-h-[300px] max-w-[150px] object-cover rounded mb-2 transition-opacity duration-500 ${
           loaded ? 'opacity-100' : 'opacity-0'
         }`}
         onLoad={() => setLoaded(true)}

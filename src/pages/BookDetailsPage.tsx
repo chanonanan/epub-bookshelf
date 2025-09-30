@@ -43,6 +43,7 @@ export default function BookDetailsPage() {
         <div className="flex-shrink-0 w-full md:w-64">
           {/* Cover image */}
           <LazyImage
+            id={file.id}
             srcBlob={cover?.blob}
             alt={file.metadata?.title ?? 'Book cover'}
             className="w-48 h-auto rounded shadow"

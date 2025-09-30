@@ -2,13 +2,14 @@ import placeholderCover from '@/assets/placeholder.jpg';
 import { useEffect, useRef, useState } from 'react';
 
 interface Props extends React.ImgHTMLAttributes<HTMLImageElement> {
+  id: string;
   isLCP?: boolean;
   srcBlob?: Blob;
 }
 
-export function LazyImage({ isLCP, className, srcBlob, ...props }: Props) {
+export function LazyImage({ id, isLCP, className, srcBlob, ...props }: Props) {
   const [loaded, setLoaded] = useState(false);
-  const [visible, setVisible] = useState(isLCP ?? false); // LCP should render immediately
+  const [visible, setVisible] = useState(isLCP ?? false);
   const [objectUrl, setObjectUrl] = useState<string>();
   const imgRef = useRef<HTMLImageElement | null>(null);
 
@@ -23,23 +24,23 @@ export function LazyImage({ isLCP, className, srcBlob, ...props }: Props) {
           observer.disconnect();
         }
       },
-      { rootMargin: '200px' }, // preload a bit before visible
+      { rootMargin: '200px' },
     );
 
     observer.observe(imgRef.current);
     return () => observer.disconnect();
   }, [isLCP]);
 
-  // Create/revoke object URL only when visible
+  // Get cached object URL only when visible
   useEffect(() => {
-    if (!srcBlob || !visible) return;
-    const url = URL.createObjectURL(srcBlob);
+    if (!srcBlob || !id || !visible) return;
+
+    const url = getObjectUrl(id, srcBlob);
     setObjectUrl(url);
 
-    return () => {
-      URL.revokeObjectURL(url);
-    };
-  }, [srcBlob, visible]);
+    // Do NOT revoke here → cache keeps it alive
+    // Cleanup handled globally if needed
+  }, [srcBlob, id, visible]);
 
   return (
     <img
@@ -58,4 +59,17 @@ export function LazyImage({ isLCP, className, srcBlob, ...props }: Props) {
       } ${className ?? ''}`}
     />
   );
+}
+
+// Global cache (fileId/hash -> URL)
+const blobUrlCache = new Map<string, string>();
+
+function getObjectUrl(id: string, blob: Blob): string {
+  if (!blobUrlCache.has(id)) {
+    console.log('Cached missed');
+    blobUrlCache.set(id, URL.createObjectURL(blob));
+  } else {
+    console.log('Cached hit');
+  }
+  return blobUrlCache.get(id)!;
 }

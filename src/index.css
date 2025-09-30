@@ -21,7 +21,7 @@ html {
 }
 
 body {
-  overflow-y: auto;
+  overflow: auto;
   /* move scroll handling to body */
 }
 

@@ -38,7 +38,7 @@ export default function App() {
               path="/:provider/folder/:folderId"
               element={
                 <PrivateRoute>
-                  <Layout className="max-w-5xl mx-auto">
+                  <Layout className="h-full flex max-w-5xl mx-auto">
                     <BookshelfPage />
                   </Layout>
                 </PrivateRoute>
