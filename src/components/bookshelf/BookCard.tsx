@@ -1,33 +1,42 @@
 import { db } from '@/db/schema';
-import type { File } from '@/types/models';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { useState } from 'react';
-import { Link, useParams } from 'react-router-dom';
+import { Link } from 'react-router-dom';
 import { LazyImage } from '../common/LazyImage';
 
-interface BookCardProps {
-  file: File;
+export interface BookCardProps {
+  id: string;
+  coverId: string;
+  title: string;
+  subTitle?: string;
+  status: string;
   view: 'grid' | 'list';
   index: number;
+  link: string;
 }
 
-export function BookCard({ file, index, view }: BookCardProps) {
-  const { provider } = useParams<{ provider: string }>();
-
+export function BookCard({
+  id,
+  coverId,
+  title,
+  subTitle,
+  status,
+  index,
+  view,
+  link,
+}: BookCardProps) {
   // Watch cover blob in Dexie
   const cover = useLiveQuery(
-    () => (file.coverId ? db.covers.get(file.coverId) : undefined),
-    [file.coverId],
+    () => (coverId ? db.covers.get(coverId) : undefined),
+    [coverId],
   );
 
   // Fade-in effect
   const [loaded, setLoaded] = useState(false);
 
-  const title = file.metadata?.title ?? file.name;
   if (typeof title !== 'string') {
     throw new Error('Title is not valid', title);
   }
-  const author = file.metadata?.author?.join(', ') ?? 'Unknown Author';
 
   // Map status to label + color
   const statusMap: Record<string, { text: string; className: string }> = {
@@ -40,16 +49,16 @@ export function BookCard({ file, index, view }: BookCardProps) {
     error: { text: 'Failed', className: 'text-red-500' },
   };
 
-  const statusLabel = statusMap[file.status] ?? null;
+  const statusLabel = statusMap[status] ?? null;
 
   if (view === 'list') {
     return (
       <li
-        key={file.id}
+        key={id}
         className="relative group border rounded px-3 py-2 flex justify-between items-center gap-2 max-w-full"
       >
         <LazyImage
-          id={file.id}
+          id={id}
           isLCP={index < 5}
           srcBlob={cover?.blob}
           alt={title}
@@ -60,7 +69,9 @@ export function BookCard({ file, index, view }: BookCardProps) {
         />
         <div className="flex flex-col flex-1 overflow-auto">
           <h3 className="text-sm font-semibold truncate">{title}</h3>
-          <p className="text-xs text-gray-500 truncate">{author}</p>
+          {subTitle && (
+            <p className="text-xs text-gray-500 truncate">{subTitle}</p>
+          )}
         </div>
         {statusLabel && (
           <span className={`text-xs mt-1 ${statusLabel.className}`}>
@@ -73,11 +84,11 @@ export function BookCard({ file, index, view }: BookCardProps) {
 
   return (
     <Link
-      to={`/${provider}/file/${file.id}`}
+      to={link}
       className="flex flex-col p-2 border rounded shadow hover:shadow-md transition"
     >
       <LazyImage
-        id={file.id}
+        id={id}
         isLCP={index < 5}
         srcBlob={cover?.blob}
         alt={title}
@@ -87,7 +98,7 @@ export function BookCard({ file, index, view }: BookCardProps) {
         onLoad={() => setLoaded(true)}
       />
       <h3 className="text-sm font-semibold truncate">{title}</h3>
-      <p className="text-xs text-gray-500 truncate">{author}</p>
+      {subTitle && <p className="text-xs text-gray-500 truncate">{subTitle}</p>}
 
       {statusLabel && (
         <p className={`text-xs mt-1 ${statusLabel.className}`}>

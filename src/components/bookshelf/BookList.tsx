@@ -1,9 +1,8 @@
-import type { File } from '@/types/models';
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { BookCard } from './BookCard';
+import { BookCard, type BookCardProps } from './BookCard';
 
 interface Props {
-  files: File[];
+  files: Omit<BookCardProps, 'view' | 'index'>[];
   viewMode: 'list' | 'card';
 }
 
@@ -94,8 +93,12 @@ export function BookList({ files, viewMode }: Props) {
             }}
           >
             <BookCard
-              key={it.id}
-              file={it}
+              id={it.id}
+              coverId={it.coverId}
+              title={it.title}
+              subTitle={it.subTitle}
+              status={it.status}
+              link={it.link}
               index={sliceIndex + startIndex}
               view="grid"
             />
