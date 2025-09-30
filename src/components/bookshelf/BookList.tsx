@@ -8,8 +8,8 @@ interface Props {
 }
 
 export function BookList({ files, viewMode }: Props) {
-  const cardWidth = 180;
-  const cardHeight = 310;
+  const cardWidth = 150;
+  const cardHeight = 290;
   const gap = 16;
   const overscanRows = 3;
   const ref = useRef<HTMLDivElement>(null);
@@ -45,7 +45,7 @@ export function BookList({ files, viewMode }: Props) {
   const columns = useMemo(() => {
     if (!containerW) return 1;
     const full = cardWidth + gap;
-    const safeW = containerW - gap; // leave breathing room
+    const safeW = containerW - gap * 2; // leave breathing room
     const cols = Math.min(5, Math.max(1, Math.floor(safeW / full)));
 
     return cols;
@@ -77,13 +77,10 @@ export function BookList({ files, viewMode }: Props) {
 
       {/* The actual visible grid chunk */}
       <div
+        className="grid justify-around content-start"
         style={{
-          display: 'grid',
           gridTemplateColumns: `repeat(${columns}, minmax(0, ${cardWidth}px))`,
           gap,
-          paddingInline: gap,
-          justifyContent: 'center',
-          alignContent: 'start',
         }}
       >
         {slice.map((it, sliceIndex) => (
