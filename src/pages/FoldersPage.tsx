@@ -81,52 +81,63 @@ export default function FoldersPage() {
             prog && prog.total > 0
               ? Math.round((prog.ready / prog.total) * 100)
               : 0;
-          return (
-            <li
-              key={f.id}
-              className="relative group border rounded px-3 py-2 flex justify-between items-center"
-            >
-              <div className="flex gap-2">
-                <Folder />
-                <span>{f.name}</span>
-              </div>
 
-              <div className="flex">
-                {/* Progress */}
-                <div className="mt-1 mx-2">
-                  <div className="w-full bg-gray-200 h-2 rounded">
-                    <div
-                      className="bg-green-500 h-2 rounded transition-all"
-                      style={{ width: `${percent}%` }}
-                    />
-                  </div>
-                  <p className="text-xs text-gray-500 mt-1">{label}</p>
+          return (
+            <li key={f.id}>
+              <Link
+                to={`/${provider}/folder/${f.id}`}
+                className="relative group border rounded px-3 py-2 flex justify-between items-center hover:bg-gray-50 transition cursor-pointer"
+              >
+                <div className="flex gap-2">
+                  <Folder />
+                  <span>{f.name}</span>
                 </div>
-                <Button
-                  variant="link"
-                  size="icon"
-                  className="cursor-pointer"
-                  title={
-                    prog && prog.total > 0 && prog.ready < prog.total
-                      ? 'Continue processing'
-                      : 'Refresh this folder'
-                  }
-                  onClick={() =>
-                    listAndSaveFiles(
-                      f.id,
-                      prog ? prog.ready < prog.total : false,
-                    )
-                  }
-                >
-                  <FolderSync />
-                </Button>
-                {/* Navigate inside */}
-                <Button variant="link" size="icon" title="Select this folder">
-                  <Link to={`/${provider}/folder/${f.id}`}>
+
+                <div className="flex items-center">
+                  {/* Progress */}
+                  <div className="mt-1 mx-2">
+                    <div className="w-full bg-gray-200 h-2 rounded">
+                      <div
+                        className="bg-green-500 h-2 rounded transition-all"
+                        style={{ width: `${percent}%` }}
+                      />
+                    </div>
+                    <p className="text-xs text-gray-500 mt-1">{label}</p>
+                  </div>
+
+                  {/* Sync button (stopPropagation so it doesn’t trigger navigation) */}
+                  <Button
+                    variant="link"
+                    size="icon"
+                    className="cursor-pointer"
+                    title={
+                      prog && prog.total > 0 && prog.ready < prog.total
+                        ? 'Continue processing'
+                        : 'Refresh this folder'
+                    }
+                    onClick={(e) => {
+                      e.preventDefault(); // prevent <Link> navigation
+                      e.stopPropagation();
+                      listAndSaveFiles(
+                        f.id,
+                        prog ? prog.ready < prog.total : false,
+                      );
+                    }}
+                  >
+                    <FolderSync />
+                  </Button>
+
+                  {/* Navigate inside */}
+                  <Button
+                    className="cursor-pointer"
+                    variant="ghost"
+                    size="icon"
+                    title="Select this folder"
+                  >
                     <ChevronRight />
-                  </Link>
-                </Button>
-              </div>
+                  </Button>
+                </div>
+              </Link>
             </li>
           );
         })}
