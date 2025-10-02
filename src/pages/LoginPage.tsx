@@ -13,10 +13,11 @@ export default function LoginPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const from =
-    (location.state as { from?: Location })?.from?.pathname ||
-    `/${provider}` ||
-    '/';
+  const from = (location.state as { from?: Location })?.from
+    ? `${(location.state as { from: Location }).from.pathname}${
+        (location.state as { from: Location }).from.search ?? ''
+      }${(location.state as { from: Location }).from.hash ?? ''}`
+    : `/${provider}` || '/';
 
   useEffect(() => {
     if (!token) return;
@@ -42,15 +43,6 @@ export default function LoginPage() {
   };
 
   return (
-    // <div className="flex flex-col items-center justify-center h-screen gap-4">
-    //   <h1 className="text-2xl font-bold">📚 EPUB Bookshelf</h1>
-    //   <button className="btn-primary" onClick={() => login('gdrive')}>
-    //     Login with Google Drive
-    //   </button>
-    //   <button className="btn-secondary" onClick={() => login('onedrive')}>
-    //     Login with OneDrive
-    //   </button>
-    // </div>
     <div className="flex flex-col items-center justify-center h-screen gap-4">
       <Card>
         <CardHeader>
