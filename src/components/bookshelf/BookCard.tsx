@@ -53,32 +53,36 @@ export function BookCard({
 
   if (view === 'list') {
     return (
-      <li
-        key={id}
-        className="relative group border rounded px-3 py-2 flex justify-between items-center gap-2 max-w-full"
-      >
-        <LazyImage
-          id={id}
-          isLCP={index < 5}
-          srcBlob={cover?.blob}
-          alt={title}
-          className={`h-[50px] aspect-[2/3] object-cover rounded transition-opacity duration-500 ${
-            loaded ? 'opacity-100' : 'opacity-0'
-          }`}
-          onLoad={() => setLoaded(true)}
-        />
-        <div className="flex flex-col flex-1 overflow-auto">
-          <h3 className="text-sm font-semibold truncate">{title}</h3>
-          {subTitle && (
-            <p className="text-xs text-gray-500 truncate">{subTitle}</p>
+      <Link to={link}>
+        <li
+          key={id}
+          className="relative group border rounded pr-3 py-2 flex justify-between items-center gap-2 max-w-full overflow-hidden h-[90px]"
+        >
+          <LazyImage
+            id={id}
+            isLCP={index < 5}
+            srcBlob={cover?.blob}
+            alt={title}
+            className={`h-[90px] aspect-[2/3] object-cover rounded transition-opacity duration-500 ${
+              loaded ? 'opacity-100' : 'opacity-0'
+            }`}
+            onLoad={() => setLoaded(true)}
+          />
+          <div className="flex flex-col flex-1 min-w-0 overflow-hidden">
+            <h3 className="text-sm font-semibold line-clamp-2">{title}</h3>
+            {subTitle && (
+              <p className="text-xs text-gray-500 truncate">{subTitle}</p>
+            )}
+          </div>
+          {statusLabel && (
+            <span
+              className={`text-xs mt-1 flex-shrink-0 ${statusLabel.className}`}
+            >
+              {statusLabel.text}
+            </span>
           )}
-        </div>
-        {statusLabel && (
-          <span className={`text-xs mt-1 ${statusLabel.className}`}>
-            {statusLabel.text}
-          </span>
-        )}
-      </li>
+        </li>
+      </Link>
     );
   }
 
