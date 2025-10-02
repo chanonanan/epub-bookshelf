@@ -86,7 +86,7 @@ export default function FoldersPage() {
             <li key={f.id}>
               <Link
                 to={`/${provider}/folder/${f.id}`}
-                className="relative group border rounded px-3 py-2 flex justify-between items-center hover:bg-gray-50 transition cursor-pointer"
+                className="relative group border rounded px-3 py-2 flex justify-between items-center hover:bg-gray-50 dark:hover:bg-gray-800 transition cursor-pointer"
               >
                 <div className="flex gap-2">
                   <Folder />

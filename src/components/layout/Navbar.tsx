@@ -7,18 +7,19 @@ export function Navbar() {
   const { provider } = useProvider();
 
   return (
-    <div className="flex items-center justify-between px-4 py-2 border-b bg-white dark:bg-gray-900">
+    <header className="flex items-center justify-between px-4 py-2 border-b bg-white dark:bg-gray-900">
       <Link
         to={provider ? `/${provider}` : '/login'}
-        className="text-lg font-bold"
+        className="flex items-center gap-2"
       >
-        📚 EPUB Bookshelf
+        <img src="logo.png" alt="EPUB Bookshelf Logo" className="h-8 w-auto" />
+        <h1 className="text-lg font-bold hidden sm:inline">EPUB Bookshelf</h1>
       </Link>
 
-      <div className="flex items-center gap-4">
+      <section className="flex items-center gap-4">
         <ProgressIndicator />
         <UserMenu />
-      </div>
-    </div>
+      </section>
+    </header>
   );
 }

@@ -1,7 +1,7 @@
 import type { BookCardProps } from '@/components/bookshelf/BookCard';
 import { BookList } from '@/components/bookshelf/BookList';
 import { SearchBox } from '@/components/common/SearchBox';
-import { ViewToggle } from '@/components/common/ViewToggle';
+import { Button } from '@/components/ui/button';
 import {
   Select,
   SelectContent,
@@ -13,6 +13,7 @@ import { db } from '@/db/schema';
 import { batchProcessor } from '@/services/batchProcessor';
 import type { File } from '@/types/models';
 import { useLiveQuery } from 'dexie-react-hooks';
+import { LayoutGrid, LayoutList } from 'lucide-react';
 import { useEffect } from 'react';
 import { useParams, useSearchParams } from 'react-router-dom';
 
@@ -115,7 +116,14 @@ export default function BookshelfPage() {
               <SelectItem value="tags">Tags</SelectItem>
             </SelectContent>
           </Select>
-          <ViewToggle viewMode={viewMode} onChange={updateView} />
+          <Button
+            variant="ghost"
+            size="icon"
+            className="cursor-pointer"
+            onClick={() => updateView(viewMode === 'card' ? 'list' : 'card')}
+          >
+            {viewMode === 'card' ? <LayoutGrid /> : <LayoutList />}
+          </Button>
         </div>
       </div>
 
