@@ -13,6 +13,8 @@ export interface BookCardProps {
   view: 'grid' | 'list';
   index: number;
   link: string;
+
+  className?: string;
 }
 
 export function BookCard({
@@ -24,6 +26,7 @@ export function BookCard({
   index,
   view,
   link,
+  className,
 }: BookCardProps) {
   // Watch cover blob in Dexie
   const cover = useLiveQuery(
@@ -56,7 +59,9 @@ export function BookCard({
       <Link to={link}>
         <li
           key={id}
-          className="relative group border rounded pr-3 py-2 flex justify-between items-center gap-2 max-w-full overflow-hidden h-[90px] hover:bg-gray-50 dark:hover:bg-gray-800 transition"
+          className={`relative group border rounded pr-3 py-2 flex 
+            justify-between items-center gap-2 max-w-full overflow-hidden h-[90px]
+            hover:bg-gray-50 dark:hover:bg-gray-800 transition ${className}`}
         >
           <LazyImage
             id={id}
@@ -89,7 +94,7 @@ export function BookCard({
   return (
     <Link
       to={link}
-      className="flex flex-col p-2 border rounded shadow hover:shadow-md hover:bg-gray-50 dark:hover:bg-gray-800 transition"
+      className={`flex flex-col p-2 border rounded shadow hover:shadow-md hover:bg-gray-50 dark:hover:bg-gray-800 transition ${className}`}
     >
       <LazyImage
         id={id}

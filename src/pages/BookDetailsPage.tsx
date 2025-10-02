@@ -33,11 +33,26 @@ export default function BookDetailsPage() {
   if (!file) return <div className="p-4">Loading...</div>;
 
   const folderId = file.folderId;
+  let title = file.metadata?.title ?? file.name;
+  if (typeof title === 'object') {
+    title = title?.['#text'] || '';
+  }
+
+  let authors =
+    file.metadata?.author?.map((a) => {
+      if (typeof a === 'object') {
+        return a?.['#text'] || '';
+      }
+
+      return a;
+    }) || [];
+
+  console.log(file);
 
   return (
     <div className="container mx-auto py-2 px-4">
       <h1 className="text-center md:text-left text-xl font-bold mb-4">
-        {file.metadata?.title ?? file.name}
+        {title}
       </h1>
       <div className="flex flex-col md:flex-row gap-8">
         <div className="flex flex-col items-center mx-0 flex-shrink-0 w-full md:w-64">
@@ -45,7 +60,7 @@ export default function BookDetailsPage() {
           <LazyImage
             id={file.id}
             srcBlob={cover?.blob}
-            alt={file.metadata?.title ?? 'Book cover'}
+            alt={title ?? 'Book cover'}
             className="w-[70%] md:w-48 h-auto rounded shadow"
           />
           {/* Actions */}
@@ -66,11 +81,11 @@ export default function BookDetailsPage() {
           <table className="table-auto">
             <tbody>
               {/* Authors */}
-              {file.metadata?.author?.length ? (
+              {authors?.length ? (
                 <tr>
                   <td className="font-semibold pr-4 align-top">Author:</td>
                   <td className="space-x-2">
-                    {file.metadata.author.map((a) => (
+                    {authors.map((a) => (
                       <Link
                         className="underline"
                         key={a}

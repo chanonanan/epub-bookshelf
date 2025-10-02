@@ -38,7 +38,7 @@ export default function App() {
               path="/:provider/folder/:folderId"
               element={
                 <PrivateRoute>
-                  <Layout className="h-full flex max-w-5xl mx-auto">
+                  <Layout className="container max-w-5xl h-full flex mx-auto">
                     <BookshelfPage />
                   </Layout>
                 </PrivateRoute>
@@ -48,7 +48,7 @@ export default function App() {
               path="/:provider/file/:fileId"
               element={
                 <PrivateRoute>
-                  <Layout className="max-w-5xl mx-auto">
+                  <Layout className="container max-w-5xl mx-auto">
                     <BookDetailsPage />
                   </Layout>
                 </PrivateRoute>
@@ -58,7 +58,7 @@ export default function App() {
               path="/:provider/file/:fileId/reader"
               element={
                 <PrivateRoute>
-                  <Layout className="max-w-5xl mx-auto">
+                  <Layout className="container max-w-5xl mx-auto">
                     <ReaderPage />
                   </Layout>
                 </PrivateRoute>
