@@ -11,6 +11,7 @@ import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
+  DropdownMenuLabel,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { useBreakpoint } from '@/hooks/useBreakpoint';
@@ -110,6 +111,10 @@ export function UserMenu() {
             <LogOut />
             Logout
           </DropdownMenuItem>
+
+          <DropdownMenuLabel>
+            {import.meta.env.VITE_APP_VERSION}
+          </DropdownMenuLabel>
         </DropdownMenuContent>
       </DropdownMenu>
     );
@@ -175,6 +180,8 @@ export function UserMenu() {
             <LogOut />
             Logout
           </Button>
+
+          <DrawerTitle>{import.meta.env.VITE_APP_VERSION}</DrawerTitle>
         </div>
       </DrawerContent>
     </Drawer>
