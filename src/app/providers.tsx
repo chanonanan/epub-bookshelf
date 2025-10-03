@@ -10,6 +10,7 @@ interface ProviderContextValue {
   provider: ProviderName | null;
   client: StorageProvider | null;
   token: string | null;
+  loading: boolean;
   login: (provider: ProviderName) => Promise<void>;
   logout: () => void;
 }
@@ -18,6 +19,7 @@ const ProviderContext = createContext<ProviderContextValue>({
   provider: null,
   client: null,
   token: null,
+  loading: true,
   login: async () => {},
   logout: () => {},
 });
@@ -26,6 +28,7 @@ export function ProviderProvider({ children }: { children: React.ReactNode }) {
   const [provider, setProvider] = useState<ProviderName | null>(null);
   const [client, setClient] = useState<StorageProvider | null>(null);
   const [token, setToken] = useState<string | null>(null);
+  const [loading, setLoading] = useState<boolean>(true);
 
   // Load saved provider from IndexedDB/localStorage on startup
   useEffect(() => {
@@ -47,6 +50,7 @@ export function ProviderProvider({ children }: { children: React.ReactNode }) {
 
     const token = client.getToken();
     setToken(token);
+    setLoading(false);
   }, [client]);
 
   useEffect(() => {
@@ -87,7 +91,7 @@ export function ProviderProvider({ children }: { children: React.ReactNode }) {
 
   return (
     <ProviderContext.Provider
-      value={{ provider, client, token, login, logout }}
+      value={{ provider, client, token, loading, login, logout }}
     >
       {children}
     </ProviderContext.Provider>

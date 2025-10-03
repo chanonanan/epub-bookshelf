@@ -3,10 +3,10 @@ import type { JSX } from 'react';
 import { Navigate, useLocation } from 'react-router-dom';
 
 export const PrivateRoute = ({ children }: { children: JSX.Element }) => {
-  const { token } = useProvider();
+  const { token, loading } = useProvider();
   const location = useLocation();
 
-  if (!token) {
+  if (!token && !loading) {
     // Redirect to login, carrying the original path in state
     return <Navigate to="/login" state={{ from: location }} replace />;
   }
