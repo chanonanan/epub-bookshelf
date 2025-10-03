@@ -202,7 +202,7 @@ function groupFilesBy(
   provider: string,
   folderId: string,
 ): Omit<BookCardProps, 'view' | 'index'>[] {
-  if (groupBy === 'none')
+  if (groupBy === 'none') {
     return files.map((file) => ({
       id: file.id,
       coverId: file.coverId!,
@@ -213,36 +213,54 @@ function groupFilesBy(
       status: file.status,
       link: `/${provider}/file/${file.id}`,
     }));
+  }
 
-  const seen = new Set<string>();
-  const grouped: Omit<BookCardProps, 'view' | 'index'>[] = [];
+  // Collect into buckets
+  const buckets: Record<string, File[]> = {};
 
   for (const f of files) {
     let key: string | undefined;
-    let link: string = '';
 
     if (groupBy === 'author') {
       key = f.metadata?.author?.[0];
-      link = `/${provider}/folder/${folderId}?author=${encodeURIComponent(key!)}`;
     } else if (groupBy === 'series') {
       key = f.metadata?.series;
-      link = `/${provider}/folder/${folderId}?series=${encodeURIComponent(key!)}`;
     } else if (groupBy === 'tags') {
       key = f.metadata?.tags?.[0];
-      link = `/${provider}/folder/${folderId}?tags=${encodeURIComponent(key!)}`;
     }
 
-    if (key && !seen.has(key)) {
-      seen.add(key);
-      grouped.push({
-        id: key,
-        coverId: f.coverId!,
-        title: key,
-        status: f.status,
-        link,
-      });
+    if (key) {
+      if (!buckets[key]) {
+        buckets[key] = [];
+      }
+      buckets[key].push(f);
     }
   }
+
+  // Convert buckets into BookCardProps
+  const grouped: Omit<BookCardProps, 'view' | 'index'>[] = Object.entries(
+    buckets,
+  ).map(([key, group]) => {
+    const first = group[0];
+    let link = '';
+
+    if (groupBy === 'author') {
+      link = `/${provider}/folder/${folderId}?author=${encodeURIComponent(key)}`;
+    } else if (groupBy === 'series') {
+      link = `/${provider}/folder/${folderId}?series=${encodeURIComponent(key)}`;
+    } else if (groupBy === 'tags') {
+      link = `/${provider}/folder/${folderId}?tags=${encodeURIComponent(key)}`;
+    }
+
+    return {
+      id: key,
+      coverId: first.coverId!,
+      title: key,
+      subTitle: `${group.length} book${group.length > 1 ? 's' : ''}`,
+      status: first.status,
+      link,
+    };
+  });
 
   return grouped;
 }
