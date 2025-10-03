@@ -23,6 +23,11 @@ export function usePreserveVirtualScroll(
 ) {
   const restored = useRef(false);
 
+  useEffect(() => {
+    // whenever the key changes, reset restore state
+    restored.current = false;
+  }, [key]);
+
   // Restore
   useEffect(() => {
     if (!ready || restored.current) return;
