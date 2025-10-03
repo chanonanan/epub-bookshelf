@@ -1,3 +1,4 @@
+import { usePreserveVirtualScroll } from '@/hooks/usePreserveVirtualScroll';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { BookCard, type BookCardProps } from './BookCard';
 
@@ -16,6 +17,11 @@ export function BookList({ files, viewMode }: Props) {
   const [viewportH, setViewportH] = useState(0);
   const [scrollTop, setScrollTop] = useState(0);
   const [containerW, setContainerW] = useState(0);
+  usePreserveVirtualScroll(
+    `booklist-${viewMode}`,
+    files.length > 0,
+    () => document.body,
+  );
 
   useEffect(() => {
     const el = document.body;
@@ -64,6 +70,8 @@ export function BookList({ files, viewMode }: Props) {
   const endIndex = Math.min(files.length, endRow * columns);
 
   const topSpacer = startRow * rowHeight;
+
+  console.log(topSpacer, scrollTop);
   const bottomSpacer = Math.max(0, (totalRows - endRow) * rowHeight);
 
   const slice = files.slice(startIndex, endIndex);
