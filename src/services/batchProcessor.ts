@@ -24,8 +24,8 @@ class BatchProcessor {
     this.getAccessToken = fn;
   }
 
-  addJobs(files: File[]) {
-    const jobs = files.filter((f) => f.status !== 'ready');
+  addJobs(files: File[], force = false) {
+    const jobs = force ? files : files.filter((f) => f.status !== 'ready');
     if (!jobs.length) return;
 
     this.queue.push(...jobs);

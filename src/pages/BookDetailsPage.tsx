@@ -2,6 +2,7 @@ import { LazyImage } from '@/components/common/LazyImage';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { db } from '@/db/schema';
+import { batchProcessor } from '@/services/batchProcessor';
 import { useLiveQuery } from 'dexie-react-hooks';
 import DOMPurify from 'dompurify';
 import { useMemo } from 'react';
@@ -47,7 +48,9 @@ export default function BookDetailsPage() {
       return a;
     }) || [];
 
-  console.log(file);
+  const refreshMetadata = () => {
+    batchProcessor.addJobs([file], true);
+  };
 
   return (
     <div className="container mx-auto py-2 px-4">
@@ -68,7 +71,11 @@ export default function BookDetailsPage() {
             <Button variant="default" className="w-full">
               Download EPUB
             </Button>
-            <Button variant="outline" className="w-full">
+            <Button
+              variant="outline"
+              className="w-full"
+              onClick={refreshMetadata}
+            >
               Refresh Metadata
             </Button>
             <Button disabled variant="outline">
