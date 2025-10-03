@@ -5,7 +5,7 @@ import BookshelfPage from '@/pages/BookshelfPage';
 import FoldersPage from '@/pages/FoldersPage';
 import LoginPage from '@/pages/LoginPage';
 import ReaderPage from '@/pages/ReaderPage';
-import { createHashRouter } from 'react-router-dom';
+import { createHashRouter, Navigate } from 'react-router-dom';
 
 export const router = createHashRouter([
   {
@@ -52,7 +52,8 @@ export const router = createHashRouter([
           </PrivateRoute>
         ),
       },
-      { path: '*', element: <LoginPage /> },
+      { path: '/', element: <Navigate to="/login" replace /> },
+      { path: '*', element: <Navigate to="/login" replace /> },
     ],
   },
 ]);
