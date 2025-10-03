@@ -5,7 +5,7 @@ import { db } from '@/db/schema';
 import { batchProcessor } from '@/services/batchProcessor';
 import { useLiveQuery } from 'dexie-react-hooks';
 import DOMPurify from 'dompurify';
-import { useMemo } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 
 export default function BookDetailsPage() {
@@ -13,11 +13,18 @@ export default function BookDetailsPage() {
     provider: string;
     fileId: string;
   }>();
+  const [refreshing, setRefreshing] = useState(false);
 
   const file = useLiveQuery(
     () => db.files.get([provider!, fileId!]),
     [provider, fileId],
   );
+
+  useEffect(() => {
+    if (refreshing && file?.metadata) {
+      setRefreshing(false);
+    }
+  }, [file?.metadata, refreshing]);
 
   const cover = useLiveQuery(
     () => (file?.coverId ? db.covers.get(file.coverId) : undefined),
@@ -31,7 +38,7 @@ export default function BookDetailsPage() {
     });
   }, [file?.metadata?.description]);
 
-  if (!file) return <div className="p-4">Loading...</div>;
+  if (!file) return null;
 
   const folderId = file.folderId;
   let title = file.metadata?.title ?? file.name;
@@ -49,6 +56,7 @@ export default function BookDetailsPage() {
     }) || [];
 
   const refreshMetadata = () => {
+    setRefreshing(true);
     batchProcessor.addJobs([file], true);
   };
 
@@ -75,8 +83,9 @@ export default function BookDetailsPage() {
               variant="outline"
               className="w-full"
               onClick={refreshMetadata}
+              disabled={refreshing}
             >
-              Refresh Metadata
+              {refreshing ? 'Refreshing...' : 'Refresh Metadata'}
             </Button>
             <Button disabled variant="outline">
               Reader (Coming soon)
