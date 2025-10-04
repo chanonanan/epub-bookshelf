@@ -54,7 +54,6 @@ export function BookList({ books, files, viewMode }: Props) {
   }, []);
 
   const [selected, setSelected] = useState<Set<string>>(new Set());
-  const longPressTimeout = useRef<NodeJS.Timeout | null>(null);
 
   const toggleSelect = (fileId: string, multi: boolean) => {
     setSelected((prev) => {
@@ -76,20 +75,10 @@ export function BookList({ books, files, viewMode }: Props) {
     toggleSelect(fileId, multi);
   };
 
-  const handleTouchStart = (fileId: string) => {
-    console.log('Touch start');
-    // long-press = 500ms
-    longPressTimeout.current = setTimeout(() => {
-      toggleSelect(fileId, true);
-    }, 500);
-  };
-
-  const handleTouchEnd = () => {
-    console.log('Touch end');
-    if (longPressTimeout.current) {
-      clearTimeout(longPressTimeout.current);
-      longPressTimeout.current = null;
-    }
+  const handleContextMenu = (fileId: string, e: React.MouseEvent) => {
+    e.preventDefault();
+    console.log('Handle context menu');
+    toggleSelect(fileId, true);
   };
 
   const clearSelection = () => setSelected(new Set());
@@ -164,17 +153,14 @@ export function BookList({ books, files, viewMode }: Props) {
                     containIntrinsicSize: `${cardHeight}px ${cardWidth}px`,
                   }}
                   onClick={(e) => handleClick(it.id, e)}
-                  onTouchStart={() => handleTouchStart(it.id)}
-                  onTouchEnd={handleTouchEnd}
+                  onContextMenu={(e) => handleContextMenu(it.id, e)}
                 >
                   <BookCard
                     {...it}
                     index={sliceIndex + startIndex}
                     view="grid"
                     className={`relative rounded-lg overflow-hidden cursor-pointer transition ${
-                      isSelected
-                        ? 'ring-1 ring-blue-500 m-1'
-                        : 'hover:bg-muted/20'
+                      isSelected ? 'border-blue-500' : 'hover:bg-muted/20'
                     }`}
                   />
                 </div>
@@ -200,8 +186,7 @@ export function BookList({ books, files, viewMode }: Props) {
                       : 'hover:bg-muted/20'
                   }`}
                   onClick={(e) => handleClick(it.id, e)}
-                  onTouchStart={() => handleTouchStart(it.id)}
-                  onTouchEnd={handleTouchEnd}
+                  onContextMenu={(e) => handleContextMenu(it.id, e)}
                 >
                   <BookCard
                     {...it}

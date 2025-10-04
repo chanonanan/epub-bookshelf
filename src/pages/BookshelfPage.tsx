@@ -60,7 +60,12 @@ export default function BookshelfPage() {
 
     // author filter
     if (filterAuthor) {
-      const authors = f.metadata?.author?.map((a) => a.toLowerCase()) ?? [];
+      const authors =
+        f.metadata?.author?.map((a: any) =>
+          typeof a === 'string'
+            ? a?.toLowerCase()
+            : a?.['#text']?.toLowerCase(),
+        ) ?? [];
       if (!authors.includes(filterAuthor)) return false;
     }
 

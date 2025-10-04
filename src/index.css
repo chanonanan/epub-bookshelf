@@ -4,28 +4,6 @@
 
 @custom-variant dark (&:is(.dark *));
 
-.container-wrapper {
-  width: 100%;
-  padding-inline: calc(var(--spacing) * 2);
-  margin-inline: auto;
-}
-
-html,
-body {
-  height: 100%;
-}
-
-html {
-  overflow: hidden;
-  /* prevent html scroll */
-}
-
-body {
-  overflow: auto;
-  /* move scroll handling to body */
-}
-
-
 @theme inline {
   --radius-sm: calc(var(--radius) - 4px);
   --radius-md: calc(var(--radius) - 2px);
@@ -136,9 +114,27 @@ body {
 @layer base {
   * {
     @apply border-border outline-ring/50;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  html,
+  body {
+    @apply h-full select-none;
+
+    /* Disable long-press callout menu on iOS */
+    -webkit-touch-callout: none;
+  }
+
+  html {
+    @apply overflow-hidden;
   }
 
   body {
-    @apply bg-background text-foreground;
+    @apply bg-background text-foreground overflow-auto;
+  }
+
+  input,
+  textarea {
+    @apply select-text;
   }
 }
