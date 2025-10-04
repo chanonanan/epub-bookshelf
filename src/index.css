@@ -121,8 +121,10 @@
   body {
     @apply h-full select-none;
 
-    /* Disable long-press callout menu on iOS */
-    -webkit-touch-callout: none;
+    /* Default: no text select, no highlights */
+    -webkit-user-select: none;
+    user-select: none;
+    -webkit-tap-highlight-color: transparent;
   }
 
   html {
@@ -136,5 +138,11 @@
   input,
   textarea {
     @apply select-text;
+  }
+
+  /* But allow contextmenu events to bubble */
+  .context-menu-target {
+    -webkit-touch-callout: default;
+    /* restore callout for context menu */
   }
 }

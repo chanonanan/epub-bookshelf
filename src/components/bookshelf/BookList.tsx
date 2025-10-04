@@ -146,6 +146,7 @@ export function BookList({ books, files, viewMode }: Props) {
               return (
                 <div
                   key={it.id}
+                  className="context-menu-target"
                   style={{
                     inlineSize: cardWidth,
                     blockSize: cardHeight,
@@ -180,7 +181,7 @@ export function BookList({ books, files, viewMode }: Props) {
                     contentVisibility: 'auto',
                     containIntrinsicSize: `${listHeight}px ${containerW}px`,
                   }}
-                  className={`relative rounded-lg overflow-hidden cursor-pointer transition ${
+                  className={`context-menu-target relative rounded-lg overflow-hidden cursor-pointer transition ${
                     isSelected
                       ? 'ring-4 ring-blue-500 bg-blue-50'
                       : 'hover:bg-muted/20'
