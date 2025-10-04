@@ -21,10 +21,10 @@ export default function BookDetailsPage() {
   );
 
   useEffect(() => {
-    if (refreshing && file?.metadata) {
-      setRefreshing(false);
-    }
-  }, [file?.metadata, refreshing]);
+    if (!refreshing) return;
+
+    setRefreshing(refreshing && file?.status === 'ready' ? false : true);
+  }, [file?.status, refreshing, setRefreshing]);
 
   const cover = useLiveQuery(
     () => (file?.coverId ? db.covers.get(file.coverId) : undefined),

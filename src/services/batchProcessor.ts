@@ -1,4 +1,5 @@
 import { db } from '@/db/schema';
+import { logBuffer } from '@/lib/logger';
 import type { File } from '@/types/models';
 import { syncChannel } from './channel';
 import { saveCover } from './coverService';
@@ -27,6 +28,8 @@ class BatchProcessor {
   addJobs(files: File[], force = false) {
     const jobs = force ? files : files.filter((f) => f.status !== 'ready');
     if (!jobs.length) return;
+
+    console.log('Add jobs', jobs);
 
     this.queue.push(...jobs);
     this.progress.total += jobs.length;
@@ -72,6 +75,15 @@ class BatchProcessor {
 
       worker.onmessage = async (e) => {
         const { type, payload } = e.data;
+
+        if (type === 'WORKER_LOG') {
+          logBuffer.add({
+            level: e.data.level,
+            message: e.data.args,
+            timestamp: Date.now(),
+            trace: ['at epubWorker.ts'],
+          });
+        }
 
         if (type === 'done') {
           resolve();

@@ -66,10 +66,7 @@ const blobUrlCache = new Map<string, string>();
 
 function getObjectUrl(id: string, blob: Blob): string {
   if (!blobUrlCache.has(id)) {
-    console.log('Cached missed');
     blobUrlCache.set(id, URL.createObjectURL(blob));
-  } else {
-    console.log('Cached hit');
   }
   return blobUrlCache.get(id)!;
 }

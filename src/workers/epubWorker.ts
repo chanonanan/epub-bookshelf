@@ -74,6 +74,14 @@ async function extractMetadataFromEpub(arrayBuffer: ArrayBuffer) {
   const metas = Array.isArray(metadataNode.meta)
     ? metadataNode.meta
     : [metadataNode.meta];
+
+  if (metadataNode['opf:meta']) {
+    const odfMeta = Array.isArray(metadataNode['opf:meta'])
+      ? metadataNode['opf:meta']
+      : [metadataNode['opf:meta']];
+
+    metas.push(...odfMeta);
+  }
   const title = extractMetadataNode('dc:title');
   const author = extractMetadataNode('dc:creator', 'array');
   const language = extractMetadataNode('dc:language');
@@ -97,6 +105,7 @@ async function extractMetadataFromEpub(arrayBuffer: ArrayBuffer) {
   // Step 3: cover
   let coverBlob: Blob | null = null;
   const metaCoverId = extractCalibreMetadata('cover');
+
   console.log('[Worker] Cover meta id:', metaCoverId);
 
   if (metaCoverId) {
@@ -192,3 +201,22 @@ self.onmessage = async (e: MessageEvent) => {
     }
   }
 };
+
+function postLog(level: string, ...args: any[]) {
+  // Send log event to main thread
+  self.postMessage({
+    type: 'WORKER_LOG',
+    level,
+    args,
+  });
+}
+
+// Optional helper to patch worker console
+const levels = ['log', 'info', 'warn', 'error', 'debug'] as const;
+levels.forEach((lvl) => {
+  const orig = console[lvl].bind(console);
+  console[lvl] = (...args: any[]) => {
+    postLog(lvl, ...args);
+    orig(...args);
+  };
+});

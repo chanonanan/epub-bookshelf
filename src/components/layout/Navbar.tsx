@@ -7,7 +7,7 @@ export function Navbar() {
   const { provider } = useProvider();
 
   return (
-    <header className="flex items-center justify-between px-4 py-2 border-b bg-white dark:bg-gray-900 sticky top-0 z-10">
+    <header className="flex items-center justify-between px-4 py-2 border-b bg-white/75 dark:bg-gray-900/75 sticky top-0 z-10 backdrop-blur supports-[backdrop-filter]:bg-background/60">
       <Link
         to={provider ? `/${provider}` : '/login'}
         className="flex items-center gap-2"

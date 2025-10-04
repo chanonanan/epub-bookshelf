@@ -36,7 +36,7 @@ export function LogItem({ entry }: { entry: any }) {
       {/* Log message */}
       <div className="ml-2">
         {entry.message.map((m: any, i: number) => (
-          <span key={i} className="ml-1">
+          <span key={i} className="ml-1 wrap-break-word">
             {typeof m === 'object' ? JSON.stringify(m) : String(m)}
           </span>
         ))}

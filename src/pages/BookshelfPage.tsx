@@ -12,11 +12,9 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { db } from '@/db/schema';
-import { batchProcessor } from '@/services/batchProcessor';
 import type { File } from '@/types/models';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { LayoutGrid, LayoutList, SlidersHorizontal } from 'lucide-react';
-import { useEffect } from 'react';
 import { useParams, useSearchParams } from 'react-router-dom';
 
 export default function BookshelfPage() {
@@ -31,13 +29,6 @@ export default function BookshelfPage() {
     () => db.files.where({ provider, folderId }).toArray(),
     [provider, folderId],
   ) as File[] | undefined;
-
-  // Enqueue jobs when folder opens
-  useEffect(() => {
-    if (files?.length) {
-      batchProcessor.addJobs(files);
-    }
-  }, [files]);
 
   if (!files) return null;
 
@@ -191,7 +182,7 @@ export default function BookshelfPage() {
       </div>
 
       {/* Shelf */}
-      <BookList files={grouped} viewMode={viewMode} />
+      <BookList books={grouped} files={files} viewMode={viewMode} />
     </div>
   );
 }

@@ -1,4 +1,3 @@
-// logger.ts
 export type LogLevel = 'log' | 'info' | 'warn' | 'error' | 'debug';
 export type LogEntry = {
   level: LogLevel;
