@@ -26,7 +26,7 @@ export const router = createHashRouter([
         path: ':provider/folder/:folderId',
         element: (
           <PrivateRoute>
-            <Layout className="container max-w-5xl h-full flex mx-auto">
+            <Layout className="max-w-5xl h-full flex mx-auto">
               <BookshelfPage />
             </Layout>
           </PrivateRoute>

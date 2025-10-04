@@ -15,7 +15,7 @@ interface Props {
 
 export function BookList({ books, files, viewMode }: Props) {
   const cardWidth = 150;
-  const cardHeight = 290;
+  const cardHeight = 260;
   const listHeight = 90; // approximate row height for list mode
   const gap = 16;
   const overscanRows = 3;
@@ -114,7 +114,7 @@ export function BookList({ books, files, viewMode }: Props) {
     if (!containerW) return 1;
     const full = cardWidth + gap;
     const safeW = containerW - gap * 2;
-    return Math.min(5, Math.max(1, Math.floor(safeW / full)));
+    return Math.min(6, Math.max(1, Math.floor(safeW / full)));
   }, [viewMode, containerW]);
 
   const rowHeight = viewMode === 'list' ? listHeight + gap : cardHeight + gap;
