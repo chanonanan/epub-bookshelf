@@ -3,11 +3,10 @@ import type { StorageProvider } from './storageProvider';
 
 export class GoogleProvider implements StorageProvider {
   private accessToken: string | null = null;
+  private pickerInitialized!: Promise<void>;
 
   constructor() {
-    window.gapi.load('picker', () => {
-      console.log('Picker API loaded successfully');
-    });
+    this.loadPicker();
   }
 
   getToken(): string | null {
@@ -233,5 +232,27 @@ export class GoogleProvider implements StorageProvider {
 
   private headers() {
     return { Authorization: `Bearer ${this.accessToken}` };
+  }
+
+  private loadPicker() {
+    if (this.pickerInitialized) {
+      return this.pickerInitialized;
+    }
+
+    this.pickerInitialized = new Promise<void>((resolve) => {
+      const waitForGapi = () => {
+        if (window.gapi && typeof window.gapi.load === 'function') {
+          window.gapi.load('picker', () => {
+            console.log('Picker loaded');
+            resolve();
+          });
+        } else {
+          // Try again in 50ms
+          setTimeout(waitForGapi, 50);
+        }
+      };
+
+      waitForGapi();
+    });
   }
 }
