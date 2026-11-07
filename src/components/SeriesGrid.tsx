@@ -1,6 +1,5 @@
 import type { BookMetadata } from '@/epubUtils';
 import { useNavigate } from 'react-router-dom';
-import { Badge } from './ui/badge';
 import {
   Card,
   CardContent,
@@ -30,7 +29,7 @@ export const SeriesGrid = ({
       {series.map((group) => (
         <button
           key={group.books[0]?.id ?? group.name}
-          className="w-full text-left focus:outline-none"
+          className="group w-full text-left focus:outline-none"
           onClick={() => {
             if (group.books.length === 1) {
               navigate(
@@ -43,21 +42,49 @@ export const SeriesGrid = ({
             );
           }}
         >
-          <Card className="h-full cursor-pointer transition-colors hover:bg-accent">
+          <Card className="h-full cursor-pointer border-0 bg-transparent shadow-none transition-colors hover:bg-transparent">
             <CardHeader className="p-0">
-              <div className="relative aspect-[2/3] w-full overflow-hidden rounded-t-lg bg-muted">
-                <LazyImage
-                  src={group.coverBlob}
-                  alt={`${group.name} cover`}
-                  className="h-full w-full object-cover"
-                />
-                {group.books.length > 1 && (
-                  <Badge
-                    variant="default"
-                    className="absolute right-1 top-1 sm:right-2 sm:top-2"
-                  >
-                    {group.books.length} books
-                  </Badge>
+              <div className="relative aspect-[2/3] w-full min-h-0 flex-none bg-muted">
+                {group.books.length > 1 ? (
+                  <>
+                    {group.books.slice(1, 3).map((book, index) => {
+                      const stackOffset = (2 - index) * 5;
+
+                      return (
+                        <div
+                          key={book.id}
+                          aria-hidden="true"
+                          className="absolute inset-0 overflow-hidden shadow-[1px_1px_2px_rgba(0,0,0,0.3)]"
+                          style={{
+                            transform: `translate(${stackOffset}px, -${stackOffset}px)`,
+                            zIndex: index + 1,
+                          }}
+                        >
+                          <LazyImage
+                            src={book.coverBlob}
+                            alt=""
+                            className="absolute inset-0 h-full w-full"
+                            imageClassName="h-full w-full object-cover"
+                          />
+                        </div>
+                      );
+                    })}
+                    <div className="absolute inset-0 z-[3] overflow-hidden">
+                      <LazyImage
+                        src={group.books[0].coverBlob}
+                        alt={`${group.name} cover`}
+                        className="absolute inset-0 h-full w-full"
+                        imageClassName="h-full w-full object-cover transition-transform duration-300 ease-in-out group-hover:scale-105"
+                      />
+                    </div>
+                  </>
+                ) : (
+                  <LazyImage
+                    src={group.coverBlob}
+                    alt={`${group.name} cover`}
+                    className="absolute inset-0 h-full w-full"
+                    imageClassName="h-full w-full object-cover transition-transform duration-300 ease-in-out group-hover:scale-105"
+                  />
                 )}
               </div>
             </CardHeader>

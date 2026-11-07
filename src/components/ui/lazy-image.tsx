@@ -4,6 +4,7 @@ interface LazyImageProps {
   src: Blob | undefined;
   alt: string;
   className?: string;
+  imageClassName?: string;
 }
 
 const observerCallbacks = new Map<Element, () => void>();
@@ -40,7 +41,12 @@ const observeNearViewport = (
   };
 };
 
-export const LazyImage: FC<LazyImageProps> = ({ src, alt, className }) => {
+export const LazyImage: FC<LazyImageProps> = ({
+  src,
+  alt,
+  className,
+  imageClassName,
+}) => {
   const containerRef = useRef<HTMLDivElement>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState(false);
@@ -76,7 +82,7 @@ export const LazyImage: FC<LazyImageProps> = ({ src, alt, className }) => {
           src={srcUrl}
           alt={alt}
           loading="lazy"
-          className={className}
+          className={imageClassName ?? className}
           onLoad={() => setIsLoading(false)}
           onError={() => {
             setError(true);

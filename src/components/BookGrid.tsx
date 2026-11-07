@@ -27,17 +27,18 @@ export const BookGrid = ({ books }: { books: BookMetadata[] }) => {
       {books.map((book) => (
         <button
           key={book.id}
-          className="text-left focus:outline-none w-full"
+          className="group w-full text-left focus:outline-none"
           onMouseEnter={preloadBookDetailsPage}
           onClick={() => navigate(`/book/${folderId}/${series}/${book.id}`)}
         >
-          <Card className="hover:bg-accent transition-colors">
+          <Card className="border-0 bg-transparent shadow-none transition-colors hover:bg-transparent">
             <CardHeader className="p-0">
-              <div className="relative w-full aspect-[2/3] bg-muted rounded-t-lg overflow-hidden">
+              <div className="relative w-full aspect-[2/3] min-h-0 flex-none bg-muted overflow-hidden">
                 <LazyImage
                   src={book.coverBlob}
                   alt={`${book.title} cover`}
-                  className="w-full h-full object-cover"
+                  className="absolute inset-0 h-full w-full"
+                  imageClassName="h-full w-full object-cover transition-transform duration-300 ease-in-out group-hover:scale-105"
                 />
                 {book.seriesIndex! > 0 && (
                   <Badge variant="default" className="absolute top-2 right-2">
