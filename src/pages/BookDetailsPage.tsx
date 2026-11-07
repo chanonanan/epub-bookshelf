@@ -1,11 +1,12 @@
-import { RoutingPath } from '@/components/RoutingPath';
+import { PageHeader } from '@/components/PageHeader';
 import { LazyImage } from '@/components/ui/lazy-image';
 import DOMPurify from 'dompurify';
 import { useEffect, useMemo, useState } from 'react';
-import { useParams } from 'react-router-dom';
+import { useLocation, useParams } from 'react-router-dom';
 import { Button } from '../components/ui/button';
 import {
   type BookMetadata,
+  getCachedBooksInFolder,
   getMetadataById,
   refreshBookInfo,
 } from '../epubUtils';
@@ -16,8 +17,13 @@ export default function BookDetailsPage({
 }: {
   folderName?: string;
 }) {
-  const { id } = useParams<{ id: string }>();
+  const { folderId, id } = useParams<{ folderId: string; id: string }>();
+  const location = useLocation();
+  const navigationState = location.state as { seriesBookCount?: number } | null;
   const [book, setBook] = useState<BookMetadata | null>(null);
+  const [seriesBookCount, setSeriesBookCount] = useState(
+    navigationState?.seriesBookCount,
+  );
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [isRefreshing, setIsRefreshing] = useState(false);
@@ -51,6 +57,35 @@ export default function BookDetailsPage({
 
     loadBook();
   }, [id]);
+
+  useEffect(() => {
+    let isCurrent = true;
+    const knownSeriesBookCount = navigationState?.seriesBookCount;
+
+    if (knownSeriesBookCount !== undefined) {
+      setSeriesBookCount(knownSeriesBookCount);
+      return;
+    }
+
+    setSeriesBookCount(undefined);
+    if (!folderId || !book?.series) return;
+
+    getCachedBooksInFolder(folderId)
+      .then((books) => {
+        if (!isCurrent || !books) return;
+        setSeriesBookCount(
+          books.filter((cachedBook) => cachedBook.series === book.series)
+            .length,
+        );
+      })
+      .catch((err) => {
+        console.error('Error checking series book count:', err);
+      });
+
+    return () => {
+      isCurrent = false;
+    };
+  }, [book?.series, folderId, location.key, navigationState?.seriesBookCount]);
 
   const handleRefresh = async () => {
     if (!book?.id) return;
@@ -134,7 +169,20 @@ export default function BookDetailsPage({
   return (
     <div>
       <div className="max-w-4xl mx-auto">
-        <RoutingPath folderName={folderName} />
+        <PageHeader
+          backLabel={
+            book.series && seriesBookCount !== 1
+              ? book.series
+              : folderName || 'Bookshelf'
+          }
+          backTo={
+            book.series && seriesBookCount !== 1 && folderId
+              ? `/bookshelf/${folderId}/${encodeURIComponent(book.series)}`
+              : `/bookshelf/${folderId}`
+          }
+          title={book.title}
+          iconOnlyBack
+        />
         <div className="flex flex-col md:flex-row gap-8">
           <div className="flex-shrink-0 w-full md:w-64">
             <LazyImage
@@ -162,7 +210,6 @@ export default function BookDetailsPage({
             </div>
           </div>
           <div className="flex-grow">
-            <h1 className="text-3xl font-bold mb-2">{book.title}</h1>
             {book.series && (
               <p className="text-lg text-muted-foreground mb-4">
                 Series: {book.series}

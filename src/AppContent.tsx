@@ -79,12 +79,7 @@ export const AppContent = () => {
             />
             <Route
               path="/bookshelf/:folderId"
-              element={
-                <BookshelfPage
-                  folderName={currentFolder?.name}
-                  searchQuery={searchQuery}
-                />
-              }
+              element={<BookshelfPage searchQuery={searchQuery} />}
             />
             <Route
               path="/bookshelf/:folderId/:series"

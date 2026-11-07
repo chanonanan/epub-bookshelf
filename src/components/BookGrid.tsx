@@ -29,7 +29,11 @@ export const BookGrid = ({ books }: { books: BookMetadata[] }) => {
           key={book.id}
           className="group w-full rounded-sm text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
           onMouseEnter={preloadBookDetailsPage}
-          onClick={() => navigate(`/book/${folderId}/${series}/${book.id}`)}
+          onClick={() =>
+            navigate(`/book/${folderId}/${series}/${book.id}`, {
+              state: { seriesBookCount: books.length },
+            })
+          }
         >
           <Card className="border-0 bg-transparent shadow-none transition-colors hover:bg-transparent">
             <CardHeader className="p-0">

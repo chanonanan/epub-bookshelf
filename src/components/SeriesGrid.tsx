@@ -34,6 +34,7 @@ export const SeriesGrid = ({
             if (group.books.length === 1) {
               navigate(
                 `/book/${folderId}/${encodeURIComponent(group.name)}/${group.books[0].id}`,
+                { state: { seriesBookCount: group.books.length } },
               );
               return;
             }

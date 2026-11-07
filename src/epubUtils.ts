@@ -592,39 +592,48 @@ export const getBooksInFolder = (
   return promise;
 };
 
+export const getCachedBooksInFolder = async (
+  folderId: string,
+): Promise<BookMetadata[] | null> => {
+  const cachedReferences =
+    await folderBooksCache.getItem<CachedFolderBook[]>(folderId);
+  if (!cachedReferences) return null;
+
+  const cachedIds = new Set(cachedReferences.map(({ id }) => id));
+  const metadataById = new Map<string, BookMetadata>();
+  await metadataCache.iterate<BookMetadata, void>((metadata, key) => {
+    if (cachedIds.has(key)) {
+      metadataById.set(key, metadata);
+    }
+  });
+
+  const cachedBooks: BookMetadata[] = [];
+  for (const reference of cachedReferences) {
+    const metadata = metadataById.get(reference.id);
+    if (metadata) {
+      cachedBooks.push({ ...metadata, fileSize: reference.fileSize });
+    }
+  }
+  return cachedBooks.length === cachedReferences.length ? cachedBooks : null;
+};
+
 const loadBooksInFolder = async (
   folderId: string,
   ignoreCache: boolean,
   onProgress: (progress: BooksFolderProgress) => void,
 ): Promise<BookMetadata[]> => {
   if (!ignoreCache) {
-    const cachedReferences =
-      await folderBooksCache.getItem<CachedFolderBook[]>(folderId);
-    if (cachedReferences) {
-      const cachedIds = new Set(cachedReferences.map(({ id }) => id));
-      const metadataById = new Map<string, BookMetadata>();
-      await metadataCache.iterate<BookMetadata, void>((metadata, key) => {
-        if (cachedIds.has(key)) {
-          metadataById.set(key, metadata);
-        }
+    const cachedBooks = await getCachedBooksInFolder(folderId);
+    if (cachedBooks) {
+      onProgress({
+        books: cachedBooks,
+        discoveredCount: cachedBooks.length,
+        processedCount: cachedBooks.length,
+        complete: true,
       });
-      const cachedBooks: BookMetadata[] = [];
-      for (const reference of cachedReferences) {
-        const metadata = metadataById.get(reference.id);
-        if (metadata) {
-          cachedBooks.push({ ...metadata, fileSize: reference.fileSize });
-        }
-      }
-      if (cachedBooks.length === cachedReferences.length) {
-        onProgress({
-          books: cachedBooks,
-          discoveredCount: cachedBooks.length,
-          processedCount: cachedBooks.length,
-          complete: true,
-        });
-        return cachedBooks;
-      }
-
+      return cachedBooks;
+    }
+    if (await folderBooksCache.getItem(folderId)) {
       return loadBooksInFolder(folderId, true, onProgress);
     }
   }

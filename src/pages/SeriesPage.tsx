@@ -1,5 +1,5 @@
 import { Bookshelf } from '@/components/Bookshelf';
-import { RoutingPath } from '@/components/RoutingPath';
+import { PageHeader } from '@/components/PageHeader';
 import { useParams } from 'react-router-dom';
 
 interface SeriesPageProps {
@@ -7,7 +7,10 @@ interface SeriesPageProps {
   searchQuery?: string;
 }
 
-export default function SeriesPage({ folderName, searchQuery }: SeriesPageProps) {
+export default function SeriesPage({
+  folderName,
+  searchQuery,
+}: SeriesPageProps) {
   const { folderId, series } = useParams<{
     folderId: string;
     series: string;
@@ -20,7 +23,12 @@ export default function SeriesPage({ folderName, searchQuery }: SeriesPageProps)
 
   return (
     <div className="mx-auto">
-      <RoutingPath folderName={folderName} />
+      <PageHeader
+        backLabel={folderName || 'Bookshelf'}
+        backTo={`/bookshelf/${folderId}`}
+        title={selectedSeries || 'Series'}
+        iconOnlyBack
+      />
       <Bookshelf
         folderId={folderId}
         initialSeries={selectedSeries || ''}
