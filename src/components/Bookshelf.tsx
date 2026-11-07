@@ -8,6 +8,8 @@ import {
   useRef,
   useState,
 } from 'react';
+import { BookOpen } from 'lucide-react';
+import { Link } from 'react-router-dom';
 import { BookGrid } from './BookGrid';
 import { SeriesGrid, type SeriesGroup } from './SeriesGrid';
 import { Button } from './ui/button';
@@ -18,13 +20,28 @@ interface BookshelfProps {
   searchQuery?: string;
 }
 
+const bookshelfBooksCache = new Map<string, BookMetadata[]>();
+
+const getBookshelfCacheKey = (folders: LibraryFolder[]) =>
+  folders
+    .map((folder) => `${folder.id}:${folder.name}:${folder.lastUpdate}`)
+    .join('|');
+
 export const Bookshelf: FC<BookshelfProps> = ({
   folders,
   initialSeries,
   searchQuery = '',
 }) => {
-  const [books, setBooks] = useState<BookMetadata[]>([]);
-  const [loading, setLoading] = useState(true);
+  const cacheKey = getBookshelfCacheKey(folders);
+  const [books, setBooks] = useState<BookMetadata[]>(
+    () => bookshelfBooksCache.get(cacheKey) ?? [],
+  );
+  const [loadedCacheKey, setLoadedCacheKey] = useState(() =>
+    bookshelfBooksCache.has(cacheKey) ? cacheKey : '',
+  );
+  const [loading, setLoading] = useState(
+    () => folders.length > 0 && !bookshelfBooksCache.has(cacheKey),
+  );
   const [error, setError] = useState<string | null>(null);
   const [discoveredCount, setDiscoveredCount] = useState(0);
   const [processedCount, setProcessedCount] = useState(0);
@@ -35,27 +52,41 @@ export const Bookshelf: FC<BookshelfProps> = ({
   const lastAnnouncedProcessedRef = useRef(0);
   const selectedSeries = initialSeries;
 
-  const filteredBooks = useMemo(
-    () =>
-      searchQuery
-        ? books.filter(
-            (book) =>
-              book.title?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-              book.author?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-              book.series?.toLowerCase().includes(searchQuery.toLowerCase()),
-          )
-        : books,
-    [books, searchQuery],
-  );
+  const filteredBooks = useMemo(() => {
+    const visibleBooks = loadedCacheKey === cacheKey ? books : [];
+    return searchQuery
+      ? visibleBooks.filter(
+          (book) =>
+            book.title?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+            book.author?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+            book.series?.toLowerCase().includes(searchQuery.toLowerCase()),
+        )
+      : visibleBooks;
+  }, [books, cacheKey, loadedCacheKey, searchQuery]);
 
   const series = useMemo(
     () => groupBooksBySeries(filteredBooks),
     [filteredBooks],
   );
+  const isLoading = loading || loadedCacheKey !== cacheKey;
+  const isEmptyLibrary = !isLoading && books.length === 0 && !searchQuery;
 
   const loadBooks = useCallback(async (sources: LibraryFolder[]) => {
     const loadId = ++loadIdRef.current;
+    const shelfKey = getBookshelfCacheKey(sources);
+    const cachedBooks = bookshelfBooksCache.get(shelfKey);
+    if (cachedBooks) {
+      setBooks(cachedBooks);
+      setLoadedCacheKey(shelfKey);
+      setLoading(false);
+      setError(null);
+      setDiscoveredCount(cachedBooks.length);
+      setProcessedCount(cachedBooks.length);
+      return;
+    }
+
     setBooks([]);
+    setLoadedCacheKey('');
     bookOrderRef.current.clear();
     lastAnnouncedProcessedRef.current = 0;
     setAnnouncedProgress('');
@@ -124,6 +155,8 @@ export const Bookshelf: FC<BookshelfProps> = ({
 
       setDiscoveredCount(discoveredOffset);
       setProcessedCount(processedOffset);
+      bookshelfBooksCache.set(shelfKey, completedBooks);
+      setLoadedCacheKey(shelfKey);
       setLoading(false);
       setAnnouncedProgress(`Finished processing ${processedOffset} EPUBs.`);
     } catch (err) {
@@ -149,7 +182,7 @@ export const Bookshelf: FC<BookshelfProps> = ({
       className="container mx-auto px-4 min-h-screen scroll-smooth"
       style={{ scrollPaddingTop: '1rem' }}
     >
-      {loading && (
+      {isLoading && (
         <LoadingShelf
           discoveredCount={discoveredCount}
           processedCount={processedCount}
@@ -171,17 +204,31 @@ export const Bookshelf: FC<BookshelfProps> = ({
           </Button>
         </div>
       )}
-      {selectedSeries ? (
+      {isEmptyLibrary ? (
+        <div className="flex min-h-[50vh] flex-col items-center justify-center px-4 text-center">
+          <BookOpen
+            aria-hidden="true"
+            className="mb-4 h-10 w-10 text-muted-foreground"
+          />
+          <h1 className="text-xl font-semibold">
+            It&apos;s a little too quiet in here.
+          </h1>
+          <p className="mt-2 max-w-md text-muted-foreground">
+            No books yet. Let&apos;s give these shelves something to read.
+          </p>
+          <Button asChild className="mt-6">
+            <Link to="/">Add a Drive folder</Link>
+          </Button>
+        </div>
+      ) : selectedSeries ? (
         <BookGrid
           books={series.find((s) => s.name === selectedSeries)?.books || []}
         />
       ) : series.length > 0 ? (
         <SeriesGrid series={series} />
-      ) : !loading ? (
+      ) : !isLoading && !searchQuery ? (
         <p className="py-12 text-center text-muted-foreground">
-          {folders.length === 0
-            ? 'Add a Drive folder from Home to start building your bookshelf.'
-            : 'No EPUB books found in your library.'}
+          No EPUB books found in your library.
         </p>
       ) : null}
     </div>
