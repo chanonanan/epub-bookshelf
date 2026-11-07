@@ -43,8 +43,6 @@ export const Bookshelf: FC<BookshelfProps> = ({
     () => folders.length > 0 && !bookshelfBooksCache.has(cacheKey),
   );
   const [error, setError] = useState<string | null>(null);
-  const [discoveredCount, setDiscoveredCount] = useState(0);
-  const [processedCount, setProcessedCount] = useState(0);
   const [announcedProgress, setAnnouncedProgress] = useState('');
   const gridRef = useRef<HTMLDivElement>(null);
   const loadIdRef = useRef(0);
@@ -80,8 +78,6 @@ export const Bookshelf: FC<BookshelfProps> = ({
       setLoadedCacheKey(shelfKey);
       setLoading(false);
       setError(null);
-      setDiscoveredCount(cachedBooks.length);
-      setProcessedCount(cachedBooks.length);
       return;
     }
 
@@ -90,8 +86,6 @@ export const Bookshelf: FC<BookshelfProps> = ({
     bookOrderRef.current.clear();
     lastAnnouncedProcessedRef.current = 0;
     setAnnouncedProgress('');
-    setDiscoveredCount(0);
-    setProcessedCount(0);
     setLoading(sources.length > 0);
     setError(null);
     if (sources.length === 0) return;
@@ -130,8 +124,6 @@ export const Bookshelf: FC<BookshelfProps> = ({
 
             const discovered = discoveredOffset + sourceDiscoveredCount;
             const processed = processedOffset + sourceProcessedCount;
-            setDiscoveredCount(discovered);
-            setProcessedCount(processed);
             setLoading(true);
             if (processed - lastAnnouncedProcessedRef.current >= 20) {
               lastAnnouncedProcessedRef.current = processed;
@@ -153,8 +145,6 @@ export const Bookshelf: FC<BookshelfProps> = ({
         setBooks(completedBooks);
       }
 
-      setDiscoveredCount(discoveredOffset);
-      setProcessedCount(processedOffset);
       bookshelfBooksCache.set(shelfKey, completedBooks);
       setLoadedCacheKey(shelfKey);
       setLoading(false);
@@ -182,12 +172,6 @@ export const Bookshelf: FC<BookshelfProps> = ({
       className="container mx-auto px-4 min-h-screen scroll-smooth"
       style={{ scrollPaddingTop: '1rem' }}
     >
-      {isLoading && (
-        <LoadingShelf
-          discoveredCount={discoveredCount}
-          processedCount={processedCount}
-        />
-      )}
       <span
         className="sr-only"
         role="status"
@@ -234,28 +218,6 @@ export const Bookshelf: FC<BookshelfProps> = ({
     </div>
   );
 };
-
-function LoadingShelf({
-  discoveredCount,
-  processedCount,
-}: {
-  discoveredCount: number;
-  processedCount: number;
-}) {
-  return (
-    <div className="flex items-center justify-center gap-3 py-6 text-sm text-muted-foreground">
-      <div
-        aria-hidden="true"
-        className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary"
-      />
-      <span>
-        {discoveredCount === 0
-          ? 'Looking for EPUB files...'
-          : `Processed ${processedCount} of ${discoveredCount} EPUBs so far...`}
-      </span>
-    </div>
-  );
-}
 
 function groupBooksBySeries(books: BookMetadata[]): SeriesGroup[] {
   const seriesMap = new Map<string, BookMetadata[]>();
