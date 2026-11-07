@@ -1,4 +1,4 @@
-import { useState, type FC } from 'react';
+import { useEffect, useRef, useState, type FC } from 'react';
 
 interface LazyImageProps {
   src: Blob | undefined;
@@ -6,16 +6,74 @@ interface LazyImageProps {
   className?: string;
 }
 
+const observerCallbacks = new Map<Element, () => void>();
+let imageObserver: IntersectionObserver | undefined;
+
+const observeNearViewport = (
+  element: Element,
+  onVisible: () => void,
+): (() => void) => {
+  if (!('IntersectionObserver' in window)) {
+    onVisible();
+    return () => {};
+  }
+
+  if (!imageObserver) {
+    imageObserver = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((entry) => {
+          if (!entry.isIntersecting) return;
+          observerCallbacks.get(entry.target)?.();
+          observerCallbacks.delete(entry.target);
+          imageObserver?.unobserve(entry.target);
+        });
+      },
+      { rootMargin: '200px' },
+    );
+  }
+
+  observerCallbacks.set(element, onVisible);
+  imageObserver.observe(element);
+  return () => {
+    observerCallbacks.delete(element);
+    imageObserver?.unobserve(element);
+  };
+};
+
 export const LazyImage: FC<LazyImageProps> = ({ src, alt, className }) => {
+  const containerRef = useRef<HTMLDivElement>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState(false);
+  const [srcUrl, setSrcUrl] = useState<string>();
+  const [isNearViewport, setIsNearViewport] = useState(false);
+
+  useEffect(() => {
+    const container = containerRef.current;
+    if (!container || !src) return;
+    return observeNearViewport(container, () => setIsNearViewport(true));
+  }, [src]);
+
+  useEffect(() => {
+    setIsLoading(Boolean(src));
+    setError(false);
+    if (!src || !isNearViewport) {
+      setSrcUrl(undefined);
+      return;
+    }
+
+    const objectUrl = URL.createObjectURL(src);
+    setSrcUrl(objectUrl);
+    return () => {
+      URL.revokeObjectURL(objectUrl);
+    };
+  }, [isNearViewport, src]);
 
   return (
-    <div className={`relative w-full ${className || ''}`}>
+    <div ref={containerRef} className={`relative w-full ${className || ''}`}>
       {isLoading && <div className="absolute inset-0 bg-muted animate-pulse" />}
-      {src ? (
+      {srcUrl ? (
         <img
-          src={src ? URL.createObjectURL(src) : undefined}
+          src={srcUrl}
           alt={alt}
           loading="lazy"
           className={className}

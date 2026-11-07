@@ -23,7 +23,7 @@ export const BookGrid = ({ books }: { books: BookMetadata[] }) => {
   }>();
 
   return (
-    <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-6">
+    <div className="grid grid-cols-[repeat(auto-fill,minmax(120px,1fr))] gap-3 sm:gap-4">
       {books.map((book) => (
         <button
           key={book.id}
@@ -46,11 +46,11 @@ export const BookGrid = ({ books }: { books: BookMetadata[] }) => {
                 )}
               </div>
             </CardHeader>
-            <CardContent className="p-4">
-              <CardTitle className="line-clamp-2 text-base mb-1">
+            <CardContent className="p-2">
+              <CardTitle className="line-clamp-2 text-xs sm:text-sm mb-1">
                 {book.title}
               </CardTitle>
-              <CardDescription className="line-clamp-1">
+              <CardDescription className="line-clamp-1 text-[11px]">
                 {book.author}
               </CardDescription>
             </CardContent>

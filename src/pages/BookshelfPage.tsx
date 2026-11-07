@@ -20,7 +20,7 @@ export default function BookshelfPage({
   }
 
   return (
-    <div className="max-w-4xl mx-auto">
+    <div className="mx-auto">
       <RoutingPath folderName={folderName} />
       <Bookshelf folderId={folderId} searchQuery={searchQuery} />
     </div>

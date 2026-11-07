@@ -1,5 +1,12 @@
 import { type BookMetadata, getBooksInFolder } from '@/epubUtils';
-import { type FC, useCallback, useEffect, useRef, useState } from 'react';
+import {
+  type FC,
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from 'react';
 import { BookGrid } from './BookGrid';
 import { SeriesGrid, type SeriesGroup } from './SeriesGrid';
 import { Button } from './ui/button';
@@ -22,22 +29,76 @@ export const Bookshelf: FC<BookshelfProps> = ({
   const [processedCount, setProcessedCount] = useState(0);
   const gridRef = useRef<HTMLDivElement>(null);
   const loadIdRef = useRef(0);
+  const bookOrderRef = useRef(new Map<string, number>());
   const selectedSeries = initialSeries;
 
-  const filteredBooks = searchQuery
-    ? books.filter(
-        (book) =>
-          book.title?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-          book.author?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-          book.series?.toLowerCase().includes(searchQuery.toLowerCase()),
-      )
-    : books;
+  const filteredBooks = useMemo(
+    () =>
+      searchQuery
+        ? books.filter(
+            (book) =>
+              book.title?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+              book.author?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+              book.series?.toLowerCase().includes(searchQuery.toLowerCase()),
+          )
+        : books,
+    [books, searchQuery],
+  );
 
-  const series = groupBooksBySeries(filteredBooks);
+  const series = useMemo(
+    () => groupBooksBySeries(filteredBooks),
+    [filteredBooks],
+  );
 
   const loadBooks = useCallback(async (folderId: string) => {
     const loadId = ++loadIdRef.current;
+    const pendingBooks = new Map<
+      string,
+      { book: BookMetadata; order: number }
+    >();
+    let pendingSnapshot: BookMetadata[] | undefined;
+    let pendingDiscoveredCount = 0;
+    let pendingProcessedCount = 0;
+    let pendingComplete = false;
+    let updateTimer: number | undefined;
+
+    const flushProgress = () => {
+      updateTimer = undefined;
+      if (loadId !== loadIdRef.current) return;
+
+      if (pendingSnapshot) {
+        const snapshot = pendingSnapshot;
+        pendingSnapshot = undefined;
+        bookOrderRef.current = new Map(
+          snapshot.map((book, index) => [book.id, index]),
+        );
+        setBooks(snapshot);
+      } else if (pendingBooks.size > 0) {
+        const updates = Array.from(pendingBooks.values());
+        pendingBooks.clear();
+        setBooks((currentBooks) => {
+          const booksById = new Map(
+            currentBooks.map((book) => [book.id, book]),
+          );
+          for (const { book, order } of updates) {
+            booksById.set(book.id, book);
+            bookOrderRef.current.set(book.id, order);
+          }
+          return Array.from(booksById.values()).sort(
+            (left, right) =>
+              (bookOrderRef.current.get(left.id) ?? Number.MAX_SAFE_INTEGER) -
+              (bookOrderRef.current.get(right.id) ?? Number.MAX_SAFE_INTEGER),
+          );
+        });
+      }
+
+      setDiscoveredCount(pendingDiscoveredCount);
+      setProcessedCount(pendingProcessedCount);
+      setLoading(!pendingComplete);
+    };
+
     setBooks([]);
+    bookOrderRef.current.clear();
     setDiscoveredCount(0);
     setProcessedCount(0);
     try {
@@ -45,16 +106,23 @@ export const Bookshelf: FC<BookshelfProps> = ({
       setError(null);
       await getBooksInFolder(folderId, false, (progress) => {
         if (loadId !== loadIdRef.current) return;
-        const completedBook = progress.book;
-        if (completedBook) {
-          setBooks((currentBooks) => [
-            ...currentBooks.filter((book) => book.id !== completedBook.id),
-            completedBook,
-          ]);
+        if (progress.books) {
+          pendingSnapshot = progress.books;
+        } else if (progress.book && progress.bookOrder !== undefined) {
+          pendingBooks.set(progress.book.id, {
+            book: progress.book,
+            order: progress.bookOrder,
+          });
         }
-        setDiscoveredCount(progress.discoveredCount);
-        setProcessedCount(progress.processedCount);
-        setLoading(!progress.complete);
+        pendingDiscoveredCount = progress.discoveredCount;
+        pendingProcessedCount = progress.processedCount;
+        pendingComplete = progress.complete;
+        if (progress.complete) {
+          if (updateTimer !== undefined) window.clearTimeout(updateTimer);
+          flushProgress();
+        } else if (updateTimer === undefined) {
+          updateTimer = window.setTimeout(flushProgress, 100);
+        }
       });
     } catch (err) {
       if (loadId === loadIdRef.current) {
@@ -62,6 +130,8 @@ export const Bookshelf: FC<BookshelfProps> = ({
         setLoading(false);
       }
       console.error('Error loading books:', err);
+    } finally {
+      if (updateTimer !== undefined) window.clearTimeout(updateTimer);
     }
   }, []);
 
@@ -190,5 +260,5 @@ function groupBooksBySeries(books: BookMetadata[]): SeriesGroup[] {
     });
   });
 
-  return seriesGroups.sort((a, b) => a.name.localeCompare(b.name));
+  return seriesGroups;
 }

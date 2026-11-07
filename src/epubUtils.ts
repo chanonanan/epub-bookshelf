@@ -24,6 +24,8 @@ export interface BookMetadata {
 
 export interface BooksFolderProgress {
   book?: BookMetadata;
+  bookOrder?: number;
+  books?: BookMetadata[];
   discoveredCount: number;
   processedCount: number;
   complete: boolean;
@@ -33,6 +35,24 @@ const metadataCache = localforage.createInstance({
   name: 'epubBookshelf',
   storeName: 'metadata',
 });
+
+const folderBooksCache = localforage.createInstance({
+  name: 'epubBookshelf',
+  storeName: 'folderBooks',
+});
+
+interface CachedFolderBook {
+  id: string;
+  fileSize?: string;
+}
+
+const inFlightFolderLoads = new Map<
+  string,
+  {
+    promise: Promise<BookMetadata[]>;
+    listeners: Set<(progress: BooksFolderProgress) => void>;
+  }
+>();
 
 interface ZipEntry {
   name: string;
@@ -544,22 +564,94 @@ export const refreshBookInfo = async (
   });
 };
 
-export const getBooksInFolder = async (
+export const getBooksInFolder = (
   folderId: string,
   ignoreCache = false,
   onProgress?: (progress: BooksFolderProgress) => void,
 ): Promise<BookMetadata[]> => {
+  const activeLoad = inFlightFolderLoads.get(folderId);
+  if (activeLoad) {
+    if (onProgress) activeLoad.listeners.add(onProgress);
+    return activeLoad.promise;
+  }
+
+  const listeners = new Set<(progress: BooksFolderProgress) => void>();
+  if (onProgress) listeners.add(onProgress);
+  const notifyProgress = (progress: BooksFolderProgress) => {
+    listeners.forEach((listener) => listener(progress));
+  };
+  const promise = loadBooksInFolder(
+    folderId,
+    ignoreCache,
+    notifyProgress,
+  ).finally(() => {
+    inFlightFolderLoads.delete(folderId);
+    listeners.clear();
+  });
+  inFlightFolderLoads.set(folderId, { promise, listeners });
+  return promise;
+};
+
+const loadBooksInFolder = async (
+  folderId: string,
+  ignoreCache: boolean,
+  onProgress: (progress: BooksFolderProgress) => void,
+): Promise<BookMetadata[]> => {
+  if (!ignoreCache) {
+    const cachedReferences =
+      await folderBooksCache.getItem<CachedFolderBook[]>(folderId);
+    if (cachedReferences) {
+      const cachedIds = new Set(cachedReferences.map(({ id }) => id));
+      const metadataById = new Map<string, BookMetadata>();
+      await metadataCache.iterate<BookMetadata, void>((metadata, key) => {
+        if (cachedIds.has(key)) {
+          metadataById.set(key, metadata);
+        }
+      });
+      const cachedBooks: BookMetadata[] = [];
+      for (const reference of cachedReferences) {
+        const metadata = metadataById.get(reference.id);
+        if (metadata) {
+          cachedBooks.push({ ...metadata, fileSize: reference.fileSize });
+        }
+      }
+      if (cachedBooks.length === cachedReferences.length) {
+        onProgress({
+          books: cachedBooks,
+          discoveredCount: cachedBooks.length,
+          processedCount: cachedBooks.length,
+          complete: true,
+        });
+        return cachedBooks;
+      }
+
+      return loadBooksInFolder(folderId, true, onProgress);
+    }
+  }
+
   const batchSize = 20;
-  const results: BookMetadata[] = [];
+  const results: Array<BookMetadata | undefined> = [];
   const activeTasks = new Set<Promise<void>>();
   let discoveredCount = 0;
   let processedCount = 0;
-  const reportProgress = (book?: BookMetadata, complete = false) =>
-    onProgress?.({ book, discoveredCount, processedCount, complete });
+  const reportProgress = (
+    book?: BookMetadata,
+    bookOrder?: number,
+    complete = false,
+  ) => {
+    onProgress({
+      book,
+      bookOrder,
+      discoveredCount,
+      processedCount,
+      complete,
+    });
+  };
 
   reportProgress();
   try {
     await listEpubFiles(folderId, ignoreCache, async (file) => {
+      const bookOrder = discoveredCount;
       discoveredCount++;
       reportProgress();
 
@@ -572,8 +664,8 @@ export const getBooksInFolder = async (
         }
 
         processedCount++;
-        if (book) results.push(book);
-        reportProgress(book ?? undefined);
+        if (book) results[bookOrder] = book;
+        reportProgress(book ?? undefined, bookOrder);
       })().finally(() => activeTasks.delete(task));
 
       activeTasks.add(task);
@@ -585,9 +677,20 @@ export const getBooksInFolder = async (
     await Promise.all(activeTasks);
   } finally {
     await Promise.all(activeTasks);
-    reportProgress(undefined, true);
   }
-  return results;
+  const completedBooks = results.filter((book): book is BookMetadata =>
+    Boolean(book),
+  );
+  await folderBooksCache.setItem(
+    folderId,
+    completedBooks.map(({ id, fileSize }) => ({ id, fileSize })),
+  );
+  onProgress({
+    discoveredCount,
+    processedCount,
+    complete: true,
+  });
+  return completedBooks;
 };
 
 export async function createThumbnail(
