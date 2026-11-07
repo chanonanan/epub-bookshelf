@@ -7,68 +7,91 @@ let client: ReturnType<
   typeof window.google.accounts.oauth2.initTokenClient
 > | null = null;
 
+let initializationPromise: Promise<void> | null = null;
+let currentTokens: GoogleTokens | null = null;
 let tokenPromise: Promise<GoogleTokens | null> | null = null;
+let resolveTokenRequest: ((tokens: GoogleTokens | null) => void) | null = null;
 
 /**
- * Initialize Google Identity Services
+ * Load and initialize Google Identity Services without opening an auth popup.
  */
 export const initializeGoogleAuth = async (): Promise<void> => {
-  return new Promise((resolve, reject) => {
+  if (client) return;
+  if (initializationPromise) return initializationPromise;
+
+  initializationPromise = new Promise((resolve, reject) => {
     const script = document.createElement('script');
     script.src = 'https://accounts.google.com/gsi/client';
     script.onload = async () => {
       try {
-        // Initialize the client
         client = window.google.accounts.oauth2.initTokenClient({
           client_id: CLIENT_ID,
           scope: SCOPE,
-          prompt: '', // Empty string to use default prompt for test users
-          auto_select: true, // Auto select the test account
           callback: (response: TokenResponse) => {
             if (response.error) {
-              reject(response.error);
+              currentTokens = null;
+              tokenPromise = null;
+              resolveTokenRequest?.(null);
+              resolveTokenRequest = null;
               return;
             }
 
-            // Store tokens
             const tokens: GoogleTokens = {
               access_token: response.access_token,
               expires_at: Date.now() + response.expires_in * 1000,
             };
-            localforage.setItem('google_tokens', tokens);
+            currentTokens = tokens;
             tokenPromise = Promise.resolve(tokens);
-            resolve();
+            const resolveRequest = resolveTokenRequest;
+            resolveTokenRequest = null;
+            void localforage
+              .setItem('google_tokens', tokens)
+              .then(() => resolveRequest?.(tokens))
+              .catch((error) => {
+                console.error('Failed to cache Google tokens:', error);
+                resolveRequest?.(tokens);
+              });
           },
         });
 
-        // Check if we have cached tokens
         const cachedTokens =
           await localforage.getItem<GoogleTokens>('google_tokens');
         if (cachedTokens && cachedTokens.expires_at > Date.now()) {
+          currentTokens = cachedTokens;
           tokenPromise = Promise.resolve(cachedTokens);
-          resolve();
-          return;
         }
-
-        // Request new tokens
-        client?.requestAccessToken();
+        resolve();
       } catch (err) {
+        initializationPromise = null;
         reject(err);
       }
     };
-    script.onerror = () =>
+    script.onerror = () => {
+      initializationPromise = null;
       reject(new Error('Failed to load Google Identity Services'));
+    };
     document.head.appendChild(script);
   });
+
+  return initializationPromise;
 };
 
 /**
- * Get OAuth tokens, either from cache or by authenticating
+ * Get cached OAuth tokens or request them directly from a user gesture.
  */
-export const getTokens = async (): Promise<GoogleTokens | null> => {
-  if (!tokenPromise) {
-    tokenPromise = _refreshTokens();
+export const getTokens = (): Promise<GoogleTokens | null> => {
+  if (currentTokens && currentTokens.expires_at > Date.now()) {
+    return Promise.resolve(currentTokens);
   }
+  if (tokenPromise) return tokenPromise;
+  if (!client) {
+    return initializeGoogleAuth().then(() => getTokens());
+  }
+
+  tokenPromise = new Promise((resolve) => {
+    resolveTokenRequest = resolve;
+  });
+  client.requestAccessToken();
   return tokenPromise;
 };
 
@@ -166,43 +189,40 @@ export const downloadFile = async (fileId: string): Promise<Blob | null> => {
   return response.blob();
 };
 
-// Private helper functions
-const _refreshTokens = async (): Promise<GoogleTokens | null> => {
-  try {
-    if (!client) {
-      await initializeGoogleAuth();
-    }
+export type FileRangeResponse =
+  | { kind: 'range'; data: ArrayBuffer }
+  | { kind: 'full'; blob: Blob };
 
-    // Check cache first
-    const cachedTokens =
-      await localforage.getItem<GoogleTokens>('google_tokens');
-    if (cachedTokens && cachedTokens.expires_at > Date.now()) {
-      return cachedTokens;
-    }
+/**
+ * Download a byte range from a Drive file. Drive may ignore Range and return the
+ * complete file, so callers must handle both response kinds.
+ */
+export const downloadFileRange = async (
+  fileId: string,
+  start: number,
+  end: number,
+): Promise<FileRangeResponse | null> => {
+  const tokens = await getTokens();
+  if (!tokens) return null;
 
-    // Request new tokens
-    return new Promise((resolve) => {
-      if (client) {
-        client.callback = (response: TokenResponse) => {
-          if (response.error) {
-            resolve(null);
-            return;
-          }
+  const response = await fetch(
+    `https://www.googleapis.com/drive/v3/files/${fileId}?alt=media`,
+    {
+      headers: {
+        Authorization: `Bearer ${tokens.access_token}`,
+        Range: `bytes=${start}-${end}`,
+      },
+    },
+  );
 
-          const tokens: GoogleTokens = {
-            access_token: response.access_token,
-            expires_at: Date.now() + response.expires_in * 1000,
-          };
-          localforage.setItem('google_tokens', tokens);
-          resolve(tokens);
-        };
-        client.requestAccessToken();
-      } else {
-        resolve(null);
-      }
-    });
-  } catch (error) {
-    console.error('Error refreshing tokens:', error);
-    return null;
+  if (response.status === 206) {
+    return { kind: 'range', data: await response.arrayBuffer() };
   }
+  if (response.status === 200) {
+    return { kind: 'full', blob: await response.blob() };
+  }
+
+  throw new Error(
+    `Failed to fetch file range: ${response.status} ${response.statusText}`,
+  );
 };

@@ -6,8 +6,8 @@ import { useParams } from 'react-router-dom';
 import { Button } from '../components/ui/button';
 import {
   type BookMetadata,
-  extractBookInfo,
   getMetadataById,
+  refreshBookInfo,
 } from '../epubUtils';
 import { downloadFile } from '../googleDrive';
 
@@ -55,12 +55,10 @@ export default function BookDetailsPage() {
     setError(null);
 
     try {
-      const blob = await downloadFile(book.id);
-      if (!blob) {
-        throw new Error('Failed to download EPUB file');
+      const freshMetadata = await refreshBookInfo(book.id, book.fileSize ?? '');
+      if (!freshMetadata) {
+        throw new Error('Failed to refresh EPUB metadata');
       }
-
-      const freshMetadata = await extractBookInfo(book.id, blob);
       setBook(freshMetadata);
     } catch (err) {
       console.error('Error refreshing metadata:', err);

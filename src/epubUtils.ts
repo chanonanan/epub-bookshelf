@@ -1,7 +1,7 @@
 import epub from 'epubjs';
 import JSZip from 'jszip';
 import localforage from 'localforage';
-import { downloadFile, listEpubFiles } from './googleDrive';
+import { downloadFile, downloadFileRange, listEpubFiles } from './googleDrive';
 
 export interface BookMetadata {
   id: string;
@@ -26,6 +26,334 @@ const metadataCache = localforage.createInstance({
   name: 'epubBookshelf',
   storeName: 'metadata',
 });
+
+interface ZipEntry {
+  name: string;
+  fileNameLength: number;
+  extraLength: number;
+  compressionMethod: number;
+  compressedSize: number;
+  uncompressedSize: number;
+  localHeaderOffset: number;
+}
+
+class FullFileResponse extends Error {
+  readonly blob: Blob;
+
+  constructor(blob: Blob) {
+    super('Drive returned the complete file instead of the requested range');
+    this.blob = blob;
+  }
+}
+
+const MAX_CENTRAL_DIRECTORY_SIZE = 64 * 1024 * 1024;
+
+const fetchFileRange = async (
+  fileId: string,
+  start: number,
+  end: number,
+): Promise<Uint8Array> => {
+  const response = await downloadFileRange(fileId, start, end);
+  if (!response) {
+    throw new Error('Google Drive authentication is unavailable');
+  }
+  if (response.kind === 'full') {
+    throw new FullFileResponse(response.blob);
+  }
+
+  const data = new Uint8Array(response.data);
+  if (data.byteLength !== end - start + 1) {
+    throw new Error('Google Drive returned an incomplete byte range');
+  }
+  return data;
+};
+
+const parseZipDirectory = async (
+  fileId: string,
+  fileSize: number,
+): Promise<Map<string, ZipEntry>> => {
+  const tailStart = Math.max(0, fileSize - 22 - 0xffff);
+  const tail = await fetchFileRange(fileId, tailStart, fileSize - 1);
+  const tailView = new DataView(tail.buffer, tail.byteOffset, tail.byteLength);
+  let eocdOffset = -1;
+
+  for (let offset = tail.byteLength - 22; offset >= 0; offset--) {
+    if (tailView.getUint32(offset, true) !== 0x06054b50) continue;
+    const commentLength = tailView.getUint16(offset + 20, true);
+    if (offset + 22 + commentLength <= tail.byteLength) {
+      eocdOffset = offset;
+      break;
+    }
+  }
+
+  if (eocdOffset < 0) {
+    throw new Error('EPUB ZIP directory marker was not found');
+  }
+
+  const diskNumber = tailView.getUint16(eocdOffset + 4, true);
+  const directoryDisk = tailView.getUint16(eocdOffset + 6, true);
+  const entriesOnDisk = tailView.getUint16(eocdOffset + 8, true);
+  const entryCount = tailView.getUint16(eocdOffset + 10, true);
+  const directorySize = tailView.getUint32(eocdOffset + 12, true);
+  const directoryOffset = tailView.getUint32(eocdOffset + 16, true);
+
+  if (
+    diskNumber !== 0 ||
+    directoryDisk !== 0 ||
+    entriesOnDisk !== entryCount ||
+    entryCount === 0xffff ||
+    directorySize === 0xffffffff ||
+    directoryOffset === 0xffffffff ||
+    directorySize > MAX_CENTRAL_DIRECTORY_SIZE ||
+    directoryOffset + directorySize > fileSize
+  ) {
+    throw new Error('EPUB uses an unsupported ZIP directory layout');
+  }
+
+  if (directorySize === 0) return new Map();
+
+  const directory = await fetchFileRange(
+    fileId,
+    directoryOffset,
+    directoryOffset + directorySize - 1,
+  );
+  const view = new DataView(
+    directory.buffer,
+    directory.byteOffset,
+    directory.byteLength,
+  );
+  const decoder = new TextDecoder();
+  const entries = new Map<string, ZipEntry>();
+  let offset = 0;
+
+  for (let index = 0; index < entryCount; index++) {
+    if (
+      offset + 46 > directory.byteLength ||
+      view.getUint32(offset, true) !== 0x02014b50
+    ) {
+      throw new Error('EPUB ZIP directory entry is invalid');
+    }
+
+    const flags = view.getUint16(offset + 8, true);
+    const compressionMethod = view.getUint16(offset + 10, true);
+    const compressedSize = view.getUint32(offset + 20, true);
+    const uncompressedSize = view.getUint32(offset + 24, true);
+    const nameLength = view.getUint16(offset + 28, true);
+    const extraLength = view.getUint16(offset + 30, true);
+    const commentLength = view.getUint16(offset + 32, true);
+    const localHeaderOffset = view.getUint32(offset + 42, true);
+    const entryLength = 46 + nameLength + extraLength + commentLength;
+
+    if (offset + entryLength > directory.byteLength) {
+      throw new Error('EPUB ZIP directory entry is truncated');
+    }
+    if (
+      flags & 1 ||
+      compressedSize === 0xffffffff ||
+      uncompressedSize === 0xffffffff ||
+      localHeaderOffset === 0xffffffff
+    ) {
+      throw new Error('EPUB contains an unsupported ZIP entry');
+    }
+
+    const name = decoder.decode(
+      directory.subarray(offset + 46, offset + 46 + nameLength),
+    );
+    entries.set(name, {
+      name,
+      fileNameLength: nameLength,
+      extraLength,
+      compressionMethod,
+      compressedSize,
+      uncompressedSize,
+      localHeaderOffset,
+    });
+    offset += entryLength;
+  }
+
+  return entries;
+};
+
+const readZipEntry = async (
+  fileId: string,
+  entry: ZipEntry,
+): Promise<Uint8Array> => {
+  const firstRangeEnd =
+    entry.localHeaderOffset +
+    30 +
+    entry.fileNameLength +
+    entry.extraLength +
+    entry.compressedSize -
+    1;
+  const localEntry = await fetchFileRange(
+    fileId,
+    entry.localHeaderOffset,
+    Math.max(entry.localHeaderOffset + 29, firstRangeEnd),
+  );
+  const view = new DataView(
+    localEntry.buffer,
+    localEntry.byteOffset,
+    localEntry.byteLength,
+  );
+  if (view.getUint32(0, true) !== 0x04034b50) {
+    throw new Error(`EPUB ZIP entry header is invalid: ${entry.name}`);
+  }
+
+  const nameLength = view.getUint16(26, true);
+  const extraLength = view.getUint16(28, true);
+  const dataOffset = entry.localHeaderOffset + 30 + nameLength + extraLength;
+  const offsetInRange = dataOffset - entry.localHeaderOffset;
+  const compressed =
+    offsetInRange + entry.compressedSize <= localEntry.byteLength
+      ? localEntry.subarray(offsetInRange, offsetInRange + entry.compressedSize)
+      : await fetchFileRange(
+          fileId,
+          dataOffset,
+          dataOffset + entry.compressedSize - 1,
+        );
+
+  let uncompressed: Uint8Array;
+  if (entry.compressionMethod === 0) {
+    uncompressed = compressed;
+  } else if (entry.compressionMethod === 8) {
+    const deflated = new Blob([compressed.slice().buffer])
+      .stream()
+      .pipeThrough(new DecompressionStream('deflate-raw' as CompressionFormat));
+    uncompressed = new Uint8Array(await new Response(deflated).arrayBuffer());
+  } else {
+    throw new Error(`Unsupported EPUB ZIP compression: ${entry.name}`);
+  }
+
+  if (uncompressed.byteLength !== entry.uncompressedSize) {
+    throw new Error(`EPUB ZIP entry has an unexpected size: ${entry.name}`);
+  }
+  return uncompressed;
+};
+
+const parseXml = (content: string): Document => {
+  const document = new DOMParser().parseFromString(content, 'application/xml');
+  if (document.getElementsByTagName('parsererror').length > 0) {
+    throw new Error('EPUB XML metadata is invalid');
+  }
+  return document;
+};
+
+const getElementsByLocalName = (
+  document: Document,
+  localName: string,
+): Element[] =>
+  Array.from(document.getElementsByTagName('*')).filter(
+    (element) => element.localName === localName,
+  );
+
+const resolveZipPath = (basePath: string, href: string): string => {
+  const decodedHref = decodeURIComponent(href.split(/[?#]/, 1)[0]);
+  const pathParts = decodedHref.startsWith('/')
+    ? []
+    : basePath.split('/').filter(Boolean);
+
+  for (const part of decodedHref.split('/')) {
+    if (!part || part === '.') continue;
+    if (part === '..') {
+      pathParts.pop();
+    } else {
+      pathParts.push(part);
+    }
+  }
+  return pathParts.join('/');
+};
+
+const extractMetadataFromRanges = async (
+  file: DriveFile,
+): Promise<BookMetadata> => {
+  const fileSize = Number(file.size);
+  if (!Number.isSafeInteger(fileSize) || fileSize <= 0) {
+    throw new Error('Drive file size is unavailable for range requests');
+  }
+
+  const entries = await parseZipDirectory(file.id, fileSize);
+  const containerEntry = entries.get('META-INF/container.xml');
+  if (!containerEntry) {
+    throw new Error('EPUB container.xml was not found');
+  }
+
+  const containerDocument = parseXml(
+    new TextDecoder().decode(await readZipEntry(file.id, containerEntry)),
+  );
+  const opfPath = getElementsByLocalName(
+    containerDocument,
+    'rootfile',
+  )[0]?.getAttribute('full-path');
+  const opfEntry = opfPath ? entries.get(opfPath) : undefined;
+  if (!opfEntry) {
+    throw new Error('EPUB package document was not found');
+  }
+
+  const opfDocument = parseXml(
+    new TextDecoder().decode(await readZipEntry(file.id, opfEntry)),
+  );
+  const metadataText = (name: string) =>
+    getElementsByLocalName(opfDocument, name)[0]?.textContent?.trim();
+  const metaElements = getElementsByLocalName(opfDocument, 'meta');
+  const calibreMeta = (name: string) =>
+    metaElements
+      .find((element) => element.getAttribute('name') === name)
+      ?.getAttribute('content');
+  const seriesIndex = Number.parseFloat(
+    calibreMeta('calibre:series_index') ?? '',
+  );
+
+  const result: BookMetadata = {
+    id: file.id,
+    title: metadataText('title') || 'Unknown Title',
+    author: metadataText('creator') || 'Unknown Author',
+    tags: getElementsByLocalName(opfDocument, 'subject')
+      .map((element) => element.textContent?.trim() ?? '')
+      .filter(Boolean),
+    language: metadataText('language'),
+    publisher: metadataText('publisher'),
+    publishDate: metadataText('date'),
+    description: metadataText('description'),
+    series: calibreMeta('calibre:series') ?? undefined,
+    seriesIndex: Number.isFinite(seriesIndex) ? seriesIndex : undefined,
+  };
+
+  const manifestItems = getElementsByLocalName(opfDocument, 'item');
+  const coverId = metaElements
+    .find((element) => element.getAttribute('name') === 'cover')
+    ?.getAttribute('content');
+  const coverItem =
+    manifestItems.find((item) => item.getAttribute('id') === coverId) ??
+    manifestItems.find((item) =>
+      item.getAttribute('properties')?.split(/\s+/).includes('cover-image'),
+    );
+  const coverHref = coverItem?.getAttribute('href');
+
+  if (coverHref) {
+    const opfDirectory = opfEntry.name.split('/').slice(0, -1).join('/');
+    const coverPath = resolveZipPath(opfDirectory, coverHref);
+    const coverEntry = entries.get(coverPath);
+    if (coverEntry) {
+      const coverData = await readZipEntry(file.id, coverEntry);
+      const extension = coverPath.split('.').pop()?.toLowerCase();
+      const mediaType =
+        coverItem?.getAttribute('media-type') ||
+        (extension === 'png'
+          ? 'image/png'
+          : extension === 'gif'
+            ? 'image/gif'
+            : extension === 'svg'
+              ? 'image/svg+xml'
+              : 'image/jpeg');
+      result.coverBlob = new Blob([coverData.slice().buffer], {
+        type: mediaType,
+      });
+    }
+  }
+
+  await metadataCache.setItem(file.id, result);
+  return result;
+};
 
 /**
  * Extract metadata and cover from an EPUB file
@@ -174,14 +502,39 @@ export const getMetadata = async (
 ): Promise<BookMetadata | null> => {
   let metadata = await metadataCache.getItem<BookMetadata>(file.id);
   if (!metadata) {
-    const epubBlob = await downloadFile(file.id);
-    if (!epubBlob) return null;
-
-    metadata = await extractBookInfo(file.id, epubBlob);
+    try {
+      metadata = await extractMetadataFromRanges(file);
+    } catch (error) {
+      const fallbackBlob =
+        error instanceof FullFileResponse
+          ? error.blob
+          : await downloadFile(file.id);
+      if (!(error instanceof FullFileResponse)) {
+        console.warn(
+          'Range-based metadata extraction failed; downloading the complete EPUB instead.',
+          error,
+        );
+      }
+      if (!fallbackBlob) return null;
+      metadata = await extractBookInfo(file.id, fallbackBlob);
+    }
   }
 
   metadata.fileSize = file.size;
   return metadata;
+};
+
+export const refreshBookInfo = async (
+  fileId: string,
+  fileSize: string,
+): Promise<BookMetadata | null> => {
+  await metadataCache.removeItem(fileId);
+  return getMetadata({
+    id: fileId,
+    name: '',
+    mimeType: 'application/epub+zip',
+    size: fileSize,
+  });
 };
 
 export const getBooksInFolder = async (
