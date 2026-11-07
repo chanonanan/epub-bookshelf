@@ -1,5 +1,5 @@
 import { type BookMetadata, getBooksInFolder } from '@/epubUtils';
-import { type FC, useEffect, useRef, useState } from 'react';
+import { type FC, useCallback, useEffect, useRef, useState } from 'react';
 import { BookGrid } from './BookGrid';
 import { SeriesGrid, type SeriesGroup } from './SeriesGrid';
 import { Button } from './ui/button';
@@ -16,17 +16,13 @@ export const Bookshelf: FC<BookshelfProps> = ({
   searchQuery = '',
 }) => {
   const [books, setBooks] = useState<BookMetadata[]>([]);
-  const [series, setSeries] = useState<SeriesGroup[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [discoveredCount, setDiscoveredCount] = useState(0);
+  const [processedCount, setProcessedCount] = useState(0);
   const gridRef = useRef<HTMLDivElement>(null);
+  const loadIdRef = useRef(0);
   const selectedSeries = initialSeries;
-
-  useEffect(() => {
-    if (folderId) {
-      loadBooks(folderId);
-    }
-  }, [folderId]);
 
   const filteredBooks = searchQuery
     ? books.filter(
@@ -37,51 +33,49 @@ export const Bookshelf: FC<BookshelfProps> = ({
       )
     : books;
 
-  // Group filtered books by series
-  useEffect(() => {
-    const groupedSeries: { [key: string]: BookMetadata[] } = {};
+  const series = groupBooksBySeries(filteredBooks);
 
-    filteredBooks.forEach((book) => {
-      const seriesName = book.series || 'Standalone';
-      if (!groupedSeries[seriesName]) {
-        groupedSeries[seriesName] = [];
-      }
-      groupedSeries[seriesName].push(book);
-    });
-
-    const seriesGroups = Object.entries(groupedSeries).map(([name, books]) => ({
-      name,
-      books,
-      coverBlob: books[0]?.coverBlob,
-    }));
-
-    setSeries(seriesGroups);
-  }, [filteredBooks]);
-
-  useEffect(() => {
-    const grouped = groupBooksBySeries(books);
-    setSeries(grouped);
-  }, [books]);
-
-  const loadBooks = async (folderId: string) => {
+  const loadBooks = useCallback(async (folderId: string) => {
+    const loadId = ++loadIdRef.current;
+    setBooks([]);
+    setDiscoveredCount(0);
+    setProcessedCount(0);
     try {
       setLoading(true);
       setError(null);
-      const books = await getBooksInFolder(folderId);
-      setBooks(books);
+      await getBooksInFolder(folderId, false, (progress) => {
+        if (loadId !== loadIdRef.current) return;
+        const completedBook = progress.book;
+        if (completedBook) {
+          setBooks((currentBooks) => [
+            ...currentBooks.filter((book) => book.id !== completedBook.id),
+            completedBook,
+          ]);
+        }
+        setDiscoveredCount(progress.discoveredCount);
+        setProcessedCount(progress.processedCount);
+        setLoading(!progress.complete);
+      });
     } catch (err) {
-      setError('Failed to load books. Please try again.');
+      if (loadId === loadIdRef.current) {
+        setError('Failed to load books. Please try again.');
+        setLoading(false);
+      }
       console.error('Error loading books:', err);
-    } finally {
-      setLoading(false);
     }
-  };
+  }, []);
 
-  if (loading) {
-    return <LoadingShelf />;
-  }
+  useEffect(() => {
+    const loadIdRefCurrent = loadIdRef;
+    if (folderId) {
+      void loadBooks(folderId);
+    }
+    return () => {
+      loadIdRefCurrent.current++;
+    };
+  }, [folderId, loadBooks]);
 
-  if (error) {
+  if (error && books.length === 0) {
     return (
       <ErrorShelf folderId={folderId} error={error} loadBooks={loadBooks} />
     );
@@ -93,21 +87,53 @@ export const Bookshelf: FC<BookshelfProps> = ({
       className="container mx-auto px-4 min-h-screen scroll-smooth"
       style={{ scrollPaddingTop: '1rem' }}
     >
+      {loading && (
+        <LoadingShelf
+          discoveredCount={discoveredCount}
+          processedCount={processedCount}
+        />
+      )}
+      {error && (
+        <div className="flex items-center justify-between gap-4 py-4 text-sm text-destructive">
+          <p>{error} Showing books found so far.</p>
+          <Button variant="outline" onClick={() => loadBooks(folderId)}>
+            Retry
+          </Button>
+        </div>
+      )}
       {selectedSeries ? (
         <BookGrid
           books={series.find((s) => s.name === selectedSeries)?.books || []}
         />
-      ) : (
+      ) : series.length > 0 ? (
         <SeriesGrid series={series} folderId={folderId} />
-      )}
+      ) : !loading ? (
+        <p className="py-12 text-center text-muted-foreground">
+          No EPUB books found in this folder.
+        </p>
+      ) : null}
     </div>
   );
 };
 
-function LoadingShelf() {
+function LoadingShelf({
+  discoveredCount,
+  processedCount,
+}: {
+  discoveredCount: number;
+  processedCount: number;
+}) {
   return (
-    <div className="flex items-center justify-center min-h-screen">
+    <div
+      role="status"
+      className="flex items-center justify-center gap-3 py-6 text-sm text-muted-foreground"
+    >
       <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary"></div>
+      <span>
+        {discoveredCount === 0
+          ? 'Looking for EPUB files...'
+          : `Processed ${processedCount} of ${discoveredCount} EPUBs so far...`}
+      </span>
     </div>
   );
 }

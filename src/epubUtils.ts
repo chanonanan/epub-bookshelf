@@ -22,6 +22,13 @@ export interface BookMetadata {
   downloadUrl?: string;
 }
 
+export interface BooksFolderProgress {
+  book?: BookMetadata;
+  discoveredCount: number;
+  processedCount: number;
+  complete: boolean;
+}
+
 const metadataCache = localforage.createInstance({
   name: 'epubBookshelf',
   storeName: 'metadata',
@@ -540,30 +547,46 @@ export const refreshBookInfo = async (
 export const getBooksInFolder = async (
   folderId: string,
   ignoreCache = false,
+  onProgress?: (progress: BooksFolderProgress) => void,
 ): Promise<BookMetadata[]> => {
-  const files = await listEpubFiles(folderId, ignoreCache);
   const batchSize = 20;
   const results: BookMetadata[] = [];
+  const activeTasks = new Set<Promise<void>>();
+  let discoveredCount = 0;
+  let processedCount = 0;
+  const reportProgress = (book?: BookMetadata, complete = false) =>
+    onProgress?.({ book, discoveredCount, processedCount, complete });
 
-  for (let i = 0; i < files.length; i += batchSize) {
-    const batch = files.slice(i, i + batchSize);
+  reportProgress();
+  try {
+    await listEpubFiles(folderId, ignoreCache, async (file) => {
+      discoveredCount++;
+      reportProgress();
 
-    const bookPromises: Promise<BookMetadata | null>[] = batch.map(
-      async (file) => {
+      const task = (async () => {
+        let book: BookMetadata | null = null;
         try {
-          const metadata = await getMetadata(file);
-          return metadata;
+          book = await getMetadata(file);
         } catch (error) {
           console.error('Error processing file:', file.name, error);
-          return null;
         }
-      },
-    );
 
-    const books = await Promise.all(bookPromises);
-    results.push(...(books.filter(Boolean) as BookMetadata[]));
+        processedCount++;
+        if (book) results.push(book);
+        reportProgress(book ?? undefined);
+      })().finally(() => activeTasks.delete(task));
+
+      activeTasks.add(task);
+      if (activeTasks.size >= batchSize) {
+        await Promise.race(activeTasks);
+      }
+    });
+
+    await Promise.all(activeTasks);
+  } finally {
+    await Promise.all(activeTasks);
+    reportProgress(undefined, true);
   }
-
   return results;
 };
 

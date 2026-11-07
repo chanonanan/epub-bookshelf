@@ -106,10 +106,16 @@ const foldersCache = localforage.createInstance({
 export const listEpubFiles = async (
   folderId: string,
   ignoreCache = false,
+  onFileFound?: (file: DriveFile) => void | Promise<void>,
 ): Promise<DriveFile[]> => {
   const cacheKey = `epubFiles:${folderId}`;
   const cachedFiles = await foldersCache.getItem<DriveFile[]>(cacheKey);
-  if (cachedFiles && !ignoreCache) return cachedFiles;
+  if (cachedFiles && !ignoreCache) {
+    for (const file of cachedFiles) {
+      await onFileFound?.(file);
+    }
+    return cachedFiles;
+  }
 
   const tokens = await getTokens();
   if (!tokens) return [];
@@ -155,6 +161,7 @@ export const listEpubFiles = async (
           await fetchChildren(file.id);
         } else if (file.mimeType === 'application/epub+zip') {
           allFiles.push(file);
+          await onFileFound?.(file);
         }
       }
 
