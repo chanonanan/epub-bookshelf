@@ -1,7 +1,7 @@
 import FolderPicker from '@/components/FolderPicker';
 import { Button } from '@/components/ui/button';
 import localforage from 'localforage';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { initializeGoogleAuth } from '../googleDrive';
 
@@ -10,7 +10,7 @@ export default function HomePage() {
   const [error, setError] = useState<string | null>(null);
   const navigate = useNavigate();
 
-  useState(() => {
+  useEffect(() => {
     const init = async () => {
       try {
         await initializeGoogleAuth();

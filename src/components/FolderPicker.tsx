@@ -19,6 +19,7 @@ const FolderPicker: React.FC<FolderPickerProps> = ({
 }) => {
   const [isPickerLoaded, setIsPickerLoaded] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   const loadPicker = useCallback(() => {
     console.log('Attempting to load picker...');
@@ -52,12 +53,16 @@ const FolderPicker: React.FC<FolderPickerProps> = ({
       return;
     }
 
+    setError(null);
     setIsLoading(true);
     try {
       // First ensure we have valid tokens
       const tokens = await getTokens();
       if (!tokens) {
         console.error('No access token available');
+        setError(
+          "Google sign-in did not complete. If you're using VS Code's embedded browser, open the app in a regular browser and try again.",
+        );
         return;
       }
 
@@ -94,19 +99,27 @@ const FolderPicker: React.FC<FolderPickerProps> = ({
       pickerInstance.setVisible(true);
     } catch (error) {
       console.error('Error showing picker:', error);
+      setError(
+        "Could not open Google Drive. If you're using VS Code's embedded browser, try the app in a regular browser.",
+      );
     } finally {
       setIsLoading(false);
     }
   }, [apiKey, isPickerLoaded, onFolderSelect]);
 
   return (
-    <Button
-      onClick={showPicker}
-      variant="outline"
-      disabled={!isPickerLoaded || isLoading}
-    >
-      {isLoading ? 'Loading...' : 'Select EPUB Folder'}
-    </Button>
+    <div className="flex flex-col items-center gap-2">
+      <Button
+        onClick={showPicker}
+        variant="outline"
+        disabled={!isPickerLoaded || isLoading}
+      >
+        {isLoading ? 'Loading...' : 'Select EPUB Folder'}
+      </Button>
+      {error && (
+        <p className="max-w-sm text-center text-sm text-destructive">{error}</p>
+      )}
+    </div>
   );
 };
 
