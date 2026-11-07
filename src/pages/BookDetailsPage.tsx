@@ -11,7 +11,11 @@ import {
 } from '../epubUtils';
 import { downloadFile } from '../googleDrive';
 
-export default function BookDetailsPage() {
+export default function BookDetailsPage({
+  folderName,
+}: {
+  folderName?: string;
+}) {
   const { id } = useParams<{ id: string }>();
   const [book, setBook] = useState<BookMetadata | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -130,7 +134,7 @@ export default function BookDetailsPage() {
   return (
     <div>
       <div className="max-w-4xl mx-auto">
-        <RoutingPath />
+        <RoutingPath folderName={folderName} />
         <div className="flex flex-col md:flex-row gap-8">
           <div className="flex-shrink-0 w-full md:w-64">
             <LazyImage

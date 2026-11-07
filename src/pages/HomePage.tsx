@@ -1,14 +1,22 @@
 import FolderPicker from '@/components/FolderPicker';
 import { Button } from '@/components/ui/button';
-import localforage from 'localforage';
+import { FolderOpen } from 'lucide-react';
 import { useEffect, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
 import { initializeGoogleAuth } from '../googleDrive';
 
-export default function HomePage() {
+interface HomePageProps {
+  onFolderSelect: (folderId: string, folderName: string) => Promise<void>;
+  recentFolders: Array<{ id: string; name: string; lastUpdate: string }>;
+  onRecentFolderSelect: (folderId: string) => void;
+}
+
+export default function HomePage({
+  onFolderSelect,
+  recentFolders,
+  onRecentFolderSelect,
+}: HomePageProps) {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const navigate = useNavigate();
 
   useEffect(() => {
     const init = async () => {
@@ -24,22 +32,6 @@ export default function HomePage() {
 
     init();
   });
-
-  const handleFolderSelect = async (folderId: string, name: string) => {
-    const recentFolders =
-      (await localforage.getItem<
-        Array<{ id: string; name: string; lastUpdate: string }>
-      >('recentFolders')) || [];
-    const updatedFolders = [
-      { id: folderId, name, lastUpdate: new Date().toISOString() },
-      ...recentFolders
-        .filter((f: { id: string }) => f.id !== folderId)
-        .slice(0, 4), // Keep last 5 folders
-    ];
-    await localforage.setItem('recentFolders', updatedFolders);
-    import('./BookshelfPage');
-    navigate(`/bookshelf/${folderId}`);
-  };
 
   if (isLoading) {
     return (
@@ -62,15 +54,35 @@ export default function HomePage() {
 
   return (
     <div className="min-h-screen bg-background">
-      <div className="flex flex-col items-center justify-center min-h-screen gap-4">
+      <div className="flex flex-col items-center justify-center min-h-[calc(100vh-3.5rem)] gap-4 py-12">
         <h2 className="text-2xl font-bold">Welcome to EPUB Bookshelf</h2>
         <p className="text-muted-foreground mb-4">
           Please select a folder containing your EPUB files
         </p>
         <FolderPicker
-          onFolderSelect={handleFolderSelect}
+          onFolderSelect={onFolderSelect}
           apiKey={import.meta.env.VITE_GOOGLE_API_KEY}
         />
+        {recentFolders.length > 0 && (
+          <section className="mt-8 w-full max-w-md">
+            <h3 className="mb-3 text-sm font-medium text-muted-foreground">
+              Recent folders
+            </h3>
+            <div className="flex flex-col gap-2">
+              {recentFolders.map((folder) => (
+                <Button
+                  key={folder.id}
+                  variant="outline"
+                  className="justify-start gap-3"
+                  onClick={() => onRecentFolderSelect(folder.id)}
+                >
+                  <FolderOpen className="h-4 w-4 shrink-0" />
+                  <span className="truncate">{folder.name}</span>
+                </Button>
+              ))}
+            </div>
+          </section>
+        )}
       </div>
     </div>
   );

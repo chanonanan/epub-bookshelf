@@ -1,4 +1,4 @@
-import { ChevronDown, Search } from 'lucide-react';
+import { ChevronDown, FolderOpen, Search } from 'lucide-react';
 import { type FC } from 'react';
 import { ModeToggle } from './ModeToggle';
 import { Button } from './ui/button';
@@ -66,16 +66,27 @@ function SelectFolderDropDown({
     <div className="flex items-center gap-4">
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
-          <Button variant="ghost" className="gap-2">
-            {/* Show folder name only on md+ screens */}
-            <span className="hidden sm:inline">
-              {currentFolderName || 'Select Folder'}
+          <Button
+            variant="ghost"
+            className="gap-2"
+            aria-label={
+              currentFolderName
+                ? `Switch folder, current folder: ${currentFolderName}`
+                : 'Choose a folder'
+            }
+          >
+            <FolderOpen className="h-4 w-4 shrink-0" />
+            <span className="max-w-[160px] truncate sm:max-w-[220px]">
+              {currentFolderName || 'Choose folder'}
             </span>
             <ChevronDown className="h-4 w-4" />
           </Button>
         </DropdownMenuTrigger>
 
         <DropdownMenuContent align="start" className="w-[240px]">
+          <div className="px-2 py-1.5 text-xs font-medium text-muted-foreground">
+            Switch bookshelf folder
+          </div>
           {recentFolders.map((folder) => (
             <DropdownMenuItem
               key={folder.id}
@@ -90,7 +101,7 @@ function SelectFolderDropDown({
           ))}
           {recentFolders.length > 0 && <DropdownMenuSeparator />}
           <DropdownMenuItem onClick={onAddFolder}>
-            Select Another Folder
+            Choose another folder...
           </DropdownMenuItem>
         </DropdownMenuContent>
       </DropdownMenu>

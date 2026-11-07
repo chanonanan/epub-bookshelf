@@ -3,10 +3,11 @@ import { RoutingPath } from '@/components/RoutingPath';
 import { useParams } from 'react-router-dom';
 
 interface SeriesPageProps {
+  folderName?: string;
   searchQuery?: string;
 }
 
-export default function SeriesPage({ searchQuery }: SeriesPageProps) {
+export default function SeriesPage({ folderName, searchQuery }: SeriesPageProps) {
   const { folderId, series } = useParams<{
     folderId: string;
     series: string;
@@ -19,7 +20,7 @@ export default function SeriesPage({ searchQuery }: SeriesPageProps) {
 
   return (
     <div className="max-w-4xl mx-auto">
-      <RoutingPath />
+      <RoutingPath folderName={folderName} />
       <Bookshelf
         folderId={folderId}
         initialSeries={selectedSeries || ''}

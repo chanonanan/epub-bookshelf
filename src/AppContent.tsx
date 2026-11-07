@@ -34,6 +34,19 @@ export const AppContent = () => {
     [navigate],
   );
 
+  const handleFolderPicked = useCallback(
+    async (id: string, name: string) => {
+      const updatedFolders = [
+        { id, name, lastUpdate: new Date().toISOString() },
+        ...recentFolders.filter((folder) => folder.id !== id).slice(0, 4),
+      ];
+      await localforage.setItem('recentFolders', updatedFolders);
+      setRecentFolders(updatedFolders);
+      navigate(`/bookshelf/${id}`);
+    },
+    [navigate, recentFolders],
+  );
+
   const handleAddFolder = useCallback(() => {
     navigate('/');
   }, [navigate]);
@@ -54,18 +67,37 @@ export const AppContent = () => {
       <main className="flex-1 container-wrapper mx-auto max-w-7xl px-4">
         <Suspense fallback={<div>Loading...</div>}>
           <Routes>
-            <Route path="/" element={<HomePage />} />
+            <Route
+              path="/"
+              element={
+                <HomePage
+                  onFolderSelect={handleFolderPicked}
+                  recentFolders={recentFolders}
+                  onRecentFolderSelect={handleFolderSelect}
+                />
+              }
+            />
             <Route
               path="/bookshelf/:folderId"
-              element={<BookshelfPage searchQuery={searchQuery} />}
+              element={
+                <BookshelfPage
+                  folderName={currentFolder?.name}
+                  searchQuery={searchQuery}
+                />
+              }
             />
             <Route
               path="/bookshelf/:folderId/:series"
-              element={<SeriesPage searchQuery={searchQuery} />}
+              element={
+                <SeriesPage
+                  folderName={currentFolder?.name}
+                  searchQuery={searchQuery}
+                />
+              }
             />
             <Route
               path="/book/:folderId/:series/:id"
-              element={<BookDetailsPage />}
+              element={<BookDetailsPage folderName={currentFolder?.name} />}
             />
           </Routes>
         </Suspense>

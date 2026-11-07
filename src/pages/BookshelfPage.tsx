@@ -3,10 +3,14 @@ import { RoutingPath } from '@/components/RoutingPath';
 import { useParams } from 'react-router-dom';
 
 interface BookshelfPageProps {
+  folderName?: string;
   searchQuery?: string;
 }
 
-export default function BookshelfPage({ searchQuery }: BookshelfPageProps) {
+export default function BookshelfPage({
+  folderName,
+  searchQuery,
+}: BookshelfPageProps) {
   const { folderId } = useParams<{
     folderId: string;
   }>();
@@ -17,7 +21,7 @@ export default function BookshelfPage({ searchQuery }: BookshelfPageProps) {
 
   return (
     <div className="max-w-4xl mx-auto">
-      <RoutingPath />
+      <RoutingPath folderName={folderName} />
       <Bookshelf folderId={folderId} searchQuery={searchQuery} />
     </div>
   );

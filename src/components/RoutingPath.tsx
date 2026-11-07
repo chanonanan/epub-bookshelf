@@ -10,7 +10,7 @@ import {
   BreadcrumbSeparator,
 } from './ui/breadcrumb';
 
-export function RoutingPath() {
+export function RoutingPath({ folderName }: { folderName?: string }) {
   const {
     folderId,
     series,
@@ -28,7 +28,10 @@ export function RoutingPath() {
       const items = [{ name: 'Home', path: '/' }];
       try {
         if (folderId) {
-          items.push({ name: 'Bookshelf', path: `/bookshelf/${folderId}` });
+          items.push({
+            name: folderName || 'Bookshelf',
+            path: `/bookshelf/${folderId}`,
+          });
         }
         if (selectedSeries) {
           items.push({
@@ -48,7 +51,7 @@ export function RoutingPath() {
     };
 
     loadBook();
-  }, [bookId, folderId, selectedSeries]);
+  }, [bookId, folderId, folderName, selectedSeries]);
 
   return (
     <div className="mb-6 flex items-center justify-between sticky top-0 bg-background z-10 py-4">
