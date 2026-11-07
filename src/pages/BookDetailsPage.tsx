@@ -1,5 +1,6 @@
 import { PageHeader } from '@/components/PageHeader';
 import { LazyImage } from '@/components/ui/lazy-image';
+import type { LibraryFolder } from '@/types/library';
 import DOMPurify from 'dompurify';
 import { useEffect, useMemo, useState } from 'react';
 import { useLocation, useParams } from 'react-router-dom';
@@ -13,11 +14,11 @@ import {
 import { downloadFile } from '../googleDrive';
 
 export default function BookDetailsPage({
-  folderName,
+  folders,
 }: {
-  folderName?: string;
+  folders: LibraryFolder[];
 }) {
-  const { folderId, id } = useParams<{ folderId: string; id: string }>();
+  const { id } = useParams<{ id: string }>();
   const location = useLocation();
   const navigationState = location.state as { seriesBookCount?: number } | null;
   const [book, setBook] = useState<BookMetadata | null>(null);
@@ -68,24 +69,30 @@ export default function BookDetailsPage({
     }
 
     setSeriesBookCount(undefined);
-    if (!folderId || !book?.series) return;
+    if (!book?.series || folders.length === 0) return;
 
-    getCachedBooksInFolder(folderId)
-      .then((books) => {
-        if (!isCurrent || !books) return;
+    Promise.all(folders.map((folder) => getCachedBooksInFolder(folder.id)))
+      .then((folderBooks) => {
+        if (!isCurrent || folderBooks.some((books) => books === null)) return;
+        const booksById = new Map(
+          folderBooks
+            .flatMap((books) => books ?? [])
+            .map((cachedBook) => [cachedBook.id, cachedBook]),
+        );
         setSeriesBookCount(
-          books.filter((cachedBook) => cachedBook.series === book.series)
-            .length,
+          Array.from(booksById.values()).filter(
+            (cachedBook) => cachedBook.series === book.series,
+          ).length,
         );
       })
       .catch((err) => {
-        console.error('Error checking series book count:', err);
+        console.error('Error checking library series count:', err);
       });
 
     return () => {
       isCurrent = false;
     };
-  }, [book?.series, folderId, location.key, navigationState?.seriesBookCount]);
+  }, [book?.series, folders, location.key, navigationState?.seriesBookCount]);
 
   const handleRefresh = async () => {
     if (!book?.id) return;
@@ -171,14 +178,12 @@ export default function BookDetailsPage({
       <div className="max-w-4xl mx-auto">
         <PageHeader
           backLabel={
-            book.series && seriesBookCount !== 1
-              ? book.series
-              : folderName || 'Bookshelf'
+            book.series && seriesBookCount !== 1 ? book.series : 'Bookshelf'
           }
           backTo={
-            book.series && seriesBookCount !== 1 && folderId
-              ? `/bookshelf/${folderId}/${encodeURIComponent(book.series)}`
-              : `/bookshelf/${folderId}`
+            book.series && seriesBookCount !== 1
+              ? `/series/${encodeURIComponent(book.series)}`
+              : '/bookshelf'
           }
           title={book.title}
           iconOnlyBack
@@ -278,8 +283,4 @@ export default function BookDetailsPage({
       </div>
     </div>
   );
-}
-
-function preloadSeriesPage() {
-  import('./SeriesPage');
 }

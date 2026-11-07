@@ -1,4 +1,5 @@
 import { type BookMetadata, getBooksInFolder } from '@/epubUtils';
+import type { LibraryFolder } from '@/types/library';
 import {
   type FC,
   useCallback,
@@ -12,13 +13,13 @@ import { SeriesGrid, type SeriesGroup } from './SeriesGrid';
 import { Button } from './ui/button';
 
 interface BookshelfProps {
-  folderId: string;
+  folders: LibraryFolder[];
   initialSeries?: string;
   searchQuery?: string;
 }
 
 export const Bookshelf: FC<BookshelfProps> = ({
-  folderId,
+  folders,
   initialSeries,
   searchQuery = '',
 }) => {
@@ -52,121 +53,95 @@ export const Bookshelf: FC<BookshelfProps> = ({
     [filteredBooks],
   );
 
-  const loadBooks = useCallback(async (folderId: string) => {
+  const loadBooks = useCallback(async (sources: LibraryFolder[]) => {
     const loadId = ++loadIdRef.current;
-    const pendingBooks = new Map<
-      string,
-      { book: BookMetadata; order: number }
-    >();
-    let pendingSnapshot: BookMetadata[] | undefined;
-    let pendingDiscoveredCount = 0;
-    let pendingProcessedCount = 0;
-    let pendingComplete = false;
-    let updateTimer: number | undefined;
-
-    const flushProgress = () => {
-      updateTimer = undefined;
-      if (loadId !== loadIdRef.current) return;
-
-      if (pendingSnapshot) {
-        const snapshot = pendingSnapshot;
-        pendingSnapshot = undefined;
-        bookOrderRef.current = new Map(
-          snapshot.map((book, index) => [book.id, index]),
-        );
-        setBooks(snapshot);
-      } else if (pendingBooks.size > 0) {
-        const updates = Array.from(pendingBooks.values());
-        pendingBooks.clear();
-        setBooks((currentBooks) => {
-          const booksById = new Map(
-            currentBooks.map((book) => [book.id, book]),
-          );
-          for (const { book, order } of updates) {
-            booksById.set(book.id, book);
-            bookOrderRef.current.set(book.id, order);
-          }
-          return Array.from(booksById.values()).sort(
-            (left, right) =>
-              (bookOrderRef.current.get(left.id) ?? Number.MAX_SAFE_INTEGER) -
-              (bookOrderRef.current.get(right.id) ?? Number.MAX_SAFE_INTEGER),
-          );
-        });
-      }
-
-      setDiscoveredCount(pendingDiscoveredCount);
-      setProcessedCount(pendingProcessedCount);
-      setLoading(!pendingComplete);
-      if (pendingComplete) {
-        setAnnouncedProgress(
-          `Finished processing ${pendingProcessedCount} EPUBs.`,
-        );
-      } else if (
-        pendingProcessedCount - lastAnnouncedProcessedRef.current >=
-        20
-      ) {
-        lastAnnouncedProcessedRef.current = pendingProcessedCount;
-        setAnnouncedProgress(
-          `Processed ${pendingProcessedCount} of ${pendingDiscoveredCount} EPUBs so far.`,
-        );
-      }
-    };
-
     setBooks([]);
     bookOrderRef.current.clear();
     lastAnnouncedProcessedRef.current = 0;
     setAnnouncedProgress('');
     setDiscoveredCount(0);
     setProcessedCount(0);
+    setLoading(sources.length > 0);
+    setError(null);
+    if (sources.length === 0) return;
+
+    let completedBooks: BookMetadata[] = [];
+    let discoveredOffset = 0;
+    let processedOffset = 0;
     try {
-      setLoading(true);
-      setError(null);
-      await getBooksInFolder(folderId, false, (progress) => {
+      for (const source of sources) {
+        let sourceBooks: Array<BookMetadata | undefined> = [];
+        let sourceDiscoveredCount = 0;
+        let sourceProcessedCount = 0;
+        const booksInSource = await getBooksInFolder(
+          source.id,
+          false,
+          (progress) => {
+            if (loadId !== loadIdRef.current) return;
+            sourceDiscoveredCount = progress.discoveredCount;
+            sourceProcessedCount = progress.processedCount;
+            if (progress.books) {
+              sourceBooks = progress.books;
+            } else if (progress.book && progress.bookOrder !== undefined) {
+              sourceBooks[progress.bookOrder] = progress.book;
+            }
+
+            const combined = new Map<string, BookMetadata>();
+            completedBooks.forEach((book) => combined.set(book.id, book));
+            sourceBooks.forEach((book) => {
+              if (book) combined.set(book.id, book);
+            });
+            const orderedBooks = Array.from(combined.values());
+            bookOrderRef.current = new Map(
+              orderedBooks.map((book, index) => [book.id, index]),
+            );
+            setBooks(orderedBooks);
+
+            const discovered = discoveredOffset + sourceDiscoveredCount;
+            const processed = processedOffset + sourceProcessedCount;
+            setDiscoveredCount(discovered);
+            setProcessedCount(processed);
+            setLoading(true);
+            if (processed - lastAnnouncedProcessedRef.current >= 20) {
+              lastAnnouncedProcessedRef.current = processed;
+              setAnnouncedProgress(
+                `Processed ${processed} of ${discovered} EPUBs so far.`,
+              );
+            }
+          },
+        );
         if (loadId !== loadIdRef.current) return;
-        if (progress.books) {
-          pendingSnapshot = progress.books;
-        } else if (progress.book && progress.bookOrder !== undefined) {
-          pendingBooks.set(progress.book.id, {
-            book: progress.book,
-            order: progress.bookOrder,
-          });
-        }
-        pendingDiscoveredCount = progress.discoveredCount;
-        pendingProcessedCount = progress.processedCount;
-        pendingComplete = progress.complete;
-        if (progress.complete) {
-          if (updateTimer !== undefined) window.clearTimeout(updateTimer);
-          flushProgress();
-        } else if (updateTimer === undefined) {
-          updateTimer = window.setTimeout(flushProgress, 100);
-        }
-      });
+
+        const uniqueBooks = new Map(
+          completedBooks.map((book) => [book.id, book]),
+        );
+        booksInSource.forEach((book) => uniqueBooks.set(book.id, book));
+        completedBooks = Array.from(uniqueBooks.values());
+        discoveredOffset += sourceDiscoveredCount;
+        processedOffset += sourceProcessedCount;
+        setBooks(completedBooks);
+      }
+
+      setDiscoveredCount(discoveredOffset);
+      setProcessedCount(processedOffset);
+      setLoading(false);
+      setAnnouncedProgress(`Finished processing ${processedOffset} EPUBs.`);
     } catch (err) {
       if (loadId === loadIdRef.current) {
-        setError('Failed to load books. Please try again.');
+        setError('Failed to load one or more Drive folders. Please try again.');
         setLoading(false);
       }
       console.error('Error loading books:', err);
-    } finally {
-      if (updateTimer !== undefined) window.clearTimeout(updateTimer);
     }
   }, []);
 
   useEffect(() => {
     const loadIdRefCurrent = loadIdRef;
-    if (folderId) {
-      void loadBooks(folderId);
-    }
+    void loadBooks(folders);
     return () => {
       loadIdRefCurrent.current++;
     };
-  }, [folderId, loadBooks]);
-
-  if (error && books.length === 0) {
-    return (
-      <ErrorShelf folderId={folderId} error={error} loadBooks={loadBooks} />
-    );
-  }
+  }, [folders, loadBooks]);
 
   return (
     <div
@@ -191,7 +166,7 @@ export const Bookshelf: FC<BookshelfProps> = ({
       {error && (
         <div className="flex items-center justify-between gap-4 py-4 text-sm text-destructive">
           <p>{error} Showing books found so far.</p>
-          <Button variant="outline" onClick={() => loadBooks(folderId)}>
+          <Button variant="outline" onClick={() => void loadBooks(folders)}>
             Retry
           </Button>
         </div>
@@ -201,10 +176,12 @@ export const Bookshelf: FC<BookshelfProps> = ({
           books={series.find((s) => s.name === selectedSeries)?.books || []}
         />
       ) : series.length > 0 ? (
-        <SeriesGrid series={series} folderId={folderId} />
+        <SeriesGrid series={series} />
       ) : !loading ? (
         <p className="py-12 text-center text-muted-foreground">
-          No EPUB books found in this folder.
+          {folders.length === 0
+            ? 'Add a Drive folder from Home to start building your bookshelf.'
+            : 'No EPUB books found in your library.'}
         </p>
       ) : null}
     </div>
@@ -229,25 +206,6 @@ function LoadingShelf({
           ? 'Looking for EPUB files...'
           : `Processed ${processedCount} of ${discoveredCount} EPUBs so far...`}
       </span>
-    </div>
-  );
-}
-
-function ErrorShelf({
-  folderId,
-  error,
-  loadBooks,
-}: {
-  folderId: string;
-  error: string | null;
-  loadBooks: (folderId: string) => void;
-}) {
-  return (
-    <div className="flex flex-col items-center justify-center gap-4 min-h-screen">
-      <p className="text-destructive">{error}</p>
-      <Button variant="outline" onClick={() => loadBooks(folderId)}>
-        Retry
-      </Button>
     </div>
   );
 }

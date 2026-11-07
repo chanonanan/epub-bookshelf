@@ -17,10 +17,7 @@ const preloadBookDetailsPage = () => {
 
 export const BookGrid = ({ books }: { books: BookMetadata[] }) => {
   const navigate = useNavigate();
-  const { folderId, series } = useParams<{
-    folderId: string;
-    series: string;
-  }>();
+  const { series } = useParams<{ series: string }>();
 
   return (
     <div className="grid grid-cols-[repeat(auto-fill,minmax(120px,1fr))] gap-3 sm:gap-4">
@@ -30,8 +27,11 @@ export const BookGrid = ({ books }: { books: BookMetadata[] }) => {
           className="group w-full rounded-sm text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
           onMouseEnter={preloadBookDetailsPage}
           onClick={() =>
-            navigate(`/book/${folderId}/${series}/${book.id}`, {
-              state: { seriesBookCount: books.length },
+            navigate(`/book/${book.id}`, {
+              state: {
+                seriesBookCount: books.length,
+                seriesName: series ? decodeURIComponent(series) : book.series,
+              },
             })
           }
         >

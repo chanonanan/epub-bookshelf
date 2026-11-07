@@ -15,13 +15,7 @@ export interface SeriesGroup {
   coverBlob?: Blob;
 }
 
-export const SeriesGrid = ({
-  series,
-  folderId,
-}: {
-  series: SeriesGroup[];
-  folderId: string;
-}) => {
+export const SeriesGrid = ({ series }: { series: SeriesGroup[] }) => {
   const navigate = useNavigate();
 
   return (
@@ -32,15 +26,15 @@ export const SeriesGrid = ({
           className="group w-full rounded-sm text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
           onClick={() => {
             if (group.books.length === 1) {
-              navigate(
-                `/book/${folderId}/${encodeURIComponent(group.name)}/${group.books[0].id}`,
-                { state: { seriesBookCount: group.books.length } },
-              );
+              navigate(`/book/${group.books[0].id}`, {
+                state: {
+                  seriesBookCount: group.books.length,
+                  seriesName: group.books[0].series,
+                },
+              });
               return;
             }
-            navigate(
-              `/bookshelf/${folderId}/${encodeURIComponent(group.name)}`,
-            );
+            navigate(`/series/${encodeURIComponent(group.name)}`);
           }}
         >
           <Card className="h-full cursor-pointer border-0 bg-transparent shadow-none transition-colors hover:bg-transparent">

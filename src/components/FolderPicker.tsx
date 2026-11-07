@@ -4,7 +4,10 @@ import '../types/google.d';
 import { Button } from './ui/button';
 
 interface FolderPickerProps {
-  onFolderSelect: (folderId: string, folderName: string) => void;
+  onFolderSelect: (
+    folderId: string,
+    folderName: string,
+  ) => void | Promise<void>;
   apiKey: string;
 }
 
@@ -90,7 +93,12 @@ const FolderPicker: React.FC<FolderPickerProps> = ({
           if (data.action === picker.Action.PICKED && data.docs?.length) {
             const folder = data.docs[0];
             console.log('Selected folder:', folder);
-            onFolderSelect(folder.id, folder.name);
+            void Promise.resolve(onFolderSelect(folder.id, folder.name)).catch(
+              (err) => {
+                console.error('Failed to add Drive folder:', err);
+                setError('Failed to add this folder to your library.');
+              },
+            );
           }
         })
         .build();
@@ -114,7 +122,7 @@ const FolderPicker: React.FC<FolderPickerProps> = ({
         variant="outline"
         disabled={!isPickerLoaded || isLoading}
       >
-        {isLoading ? 'Loading...' : 'Select EPUB Folder'}
+        {isLoading ? 'Loading...' : 'Add Drive folder'}
       </Button>
       {error && (
         <p className="max-w-sm text-center text-sm text-destructive">{error}</p>
