@@ -27,9 +27,11 @@ export const Bookshelf: FC<BookshelfProps> = ({
   const [error, setError] = useState<string | null>(null);
   const [discoveredCount, setDiscoveredCount] = useState(0);
   const [processedCount, setProcessedCount] = useState(0);
+  const [announcedProgress, setAnnouncedProgress] = useState('');
   const gridRef = useRef<HTMLDivElement>(null);
   const loadIdRef = useRef(0);
   const bookOrderRef = useRef(new Map<string, number>());
+  const lastAnnouncedProcessedRef = useRef(0);
   const selectedSeries = initialSeries;
 
   const filteredBooks = useMemo(
@@ -95,10 +97,25 @@ export const Bookshelf: FC<BookshelfProps> = ({
       setDiscoveredCount(pendingDiscoveredCount);
       setProcessedCount(pendingProcessedCount);
       setLoading(!pendingComplete);
+      if (pendingComplete) {
+        setAnnouncedProgress(
+          `Finished processing ${pendingProcessedCount} EPUBs.`,
+        );
+      } else if (
+        pendingProcessedCount - lastAnnouncedProcessedRef.current >=
+        20
+      ) {
+        lastAnnouncedProcessedRef.current = pendingProcessedCount;
+        setAnnouncedProgress(
+          `Processed ${pendingProcessedCount} of ${pendingDiscoveredCount} EPUBs so far.`,
+        );
+      }
     };
 
     setBooks([]);
     bookOrderRef.current.clear();
+    lastAnnouncedProcessedRef.current = 0;
+    setAnnouncedProgress('');
     setDiscoveredCount(0);
     setProcessedCount(0);
     try {
@@ -163,6 +180,14 @@ export const Bookshelf: FC<BookshelfProps> = ({
           processedCount={processedCount}
         />
       )}
+      <span
+        className="sr-only"
+        role="status"
+        aria-live="polite"
+        aria-atomic="true"
+      >
+        {announcedProgress}
+      </span>
       {error && (
         <div className="flex items-center justify-between gap-4 py-4 text-sm text-destructive">
           <p>{error} Showing books found so far.</p>
@@ -194,11 +219,11 @@ function LoadingShelf({
   processedCount: number;
 }) {
   return (
-    <div
-      role="status"
-      className="flex items-center justify-center gap-3 py-6 text-sm text-muted-foreground"
-    >
-      <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary"></div>
+    <div className="flex items-center justify-center gap-3 py-6 text-sm text-muted-foreground">
+      <div
+        aria-hidden="true"
+        className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary"
+      />
       <span>
         {discoveredCount === 0
           ? 'Looking for EPUB files...'

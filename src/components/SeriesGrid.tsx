@@ -29,7 +29,7 @@ export const SeriesGrid = ({
       {series.map((group) => (
         <button
           key={group.books[0]?.id ?? group.name}
-          className="group w-full text-left focus:outline-none"
+          className="group w-full rounded-sm text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
           onClick={() => {
             if (group.books.length === 1) {
               navigate(
@@ -72,7 +72,7 @@ export const SeriesGrid = ({
                     <div className="absolute inset-0 z-[3] overflow-hidden">
                       <LazyImage
                         src={group.books[0].coverBlob}
-                        alt={`${group.name} cover`}
+                        alt=""
                         className="absolute inset-0 h-full w-full"
                         imageClassName="h-full w-full object-cover transition-transform duration-300 ease-in-out group-hover:scale-105"
                       />
@@ -81,7 +81,7 @@ export const SeriesGrid = ({
                 ) : (
                   <LazyImage
                     src={group.coverBlob}
-                    alt={`${group.name} cover`}
+                    alt=""
                     className="absolute inset-0 h-full w-full"
                     imageClassName="h-full w-full object-cover transition-transform duration-300 ease-in-out group-hover:scale-105"
                   />

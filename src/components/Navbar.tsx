@@ -42,6 +42,7 @@ export const Navbar: FC<NavbarProps> = ({
           <Search className="absolute left-3 h-4 w-4 text-muted-foreground" />
           <input
             type="search"
+            aria-label="Search books"
             placeholder="Search books..."
             className="w-[200px] pl-9 h-9 rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm transition-colors placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
             onChange={(e) => onSearchChange(e.target.value)}

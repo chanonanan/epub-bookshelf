@@ -27,7 +27,7 @@ export const BookGrid = ({ books }: { books: BookMetadata[] }) => {
       {books.map((book) => (
         <button
           key={book.id}
-          className="group w-full text-left focus:outline-none"
+          className="group w-full rounded-sm text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
           onMouseEnter={preloadBookDetailsPage}
           onClick={() => navigate(`/book/${folderId}/${series}/${book.id}`)}
         >
@@ -36,7 +36,7 @@ export const BookGrid = ({ books }: { books: BookMetadata[] }) => {
               <div className="relative w-full aspect-[2/3] min-h-0 flex-none bg-muted overflow-hidden">
                 <LazyImage
                   src={book.coverBlob}
-                  alt={`${book.title} cover`}
+                  alt=""
                   className="absolute inset-0 h-full w-full"
                   imageClassName="h-full w-full object-cover transition-transform duration-300 ease-in-out group-hover:scale-105"
                 />
