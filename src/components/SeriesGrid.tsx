@@ -88,7 +88,7 @@ export const SeriesGrid = ({
                 )}
               </div>
             </CardHeader>
-            <CardContent className="p-2">
+            <CardContent className="px-0 py-2">
               <CardTitle className="line-clamp-2 text-xs sm:text-sm">
                 {group.name}
               </CardTitle>

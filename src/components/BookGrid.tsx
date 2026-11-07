@@ -47,7 +47,7 @@ export const BookGrid = ({ books }: { books: BookMetadata[] }) => {
                 )}
               </div>
             </CardHeader>
-            <CardContent className="p-2">
+            <CardContent className="px-0 py-2">
               <CardTitle className="line-clamp-2 text-xs sm:text-sm mb-1">
                 {book.title}
               </CardTitle>
