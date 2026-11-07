@@ -31,9 +31,17 @@ export const SeriesGrid = ({
         <button
           key={group.books[0]?.id ?? group.name}
           className="w-full text-left focus:outline-none"
-          onClick={() =>
-            navigate(`/bookshelf/${folderId}/${encodeURIComponent(group.name)}`)
-          }
+          onClick={() => {
+            if (group.books.length === 1) {
+              navigate(
+                `/book/${folderId}/${encodeURIComponent(group.name)}/${group.books[0].id}`,
+              );
+              return;
+            }
+            navigate(
+              `/bookshelf/${folderId}/${encodeURIComponent(group.name)}`,
+            );
+          }}
         >
           <Card className="h-full cursor-pointer transition-colors hover:bg-accent">
             <CardHeader className="p-0">
@@ -43,13 +51,14 @@ export const SeriesGrid = ({
                   alt={`${group.name} cover`}
                   className="h-full w-full object-cover"
                 />
-                <Badge
-                  variant="default"
-                  className="absolute right-1 top-1 sm:right-2 sm:top-2"
-                >
-                  {group.books.length} book
-                  {group.books.length !== 1 ? 's' : ''}
-                </Badge>
+                {group.books.length > 1 && (
+                  <Badge
+                    variant="default"
+                    className="absolute right-1 top-1 sm:right-2 sm:top-2"
+                  >
+                    {group.books.length} books
+                  </Badge>
+                )}
               </div>
             </CardHeader>
             <CardContent className="p-2">
