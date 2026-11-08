@@ -29,7 +29,6 @@ import { Button } from './ui/button';
 
 interface BookshelfProps {
   folders: LibraryFolder[];
-  initialSeries?: string;
   searchQuery?: string;
 }
 
@@ -64,7 +63,6 @@ const isSortBy = (value: string | null): value is SortBy =>
 
 export const Bookshelf: FC<BookshelfProps> = ({
   folders,
-  initialSeries,
   searchQuery = '',
 }) => {
   const [searchParams, setSearchParams] = useSearchParams();
@@ -91,7 +89,6 @@ export const Bookshelf: FC<BookshelfProps> = ({
   const loadIdRef = useRef(0);
   const lastAnnouncedProcessedRef = useRef(0);
   const previousGroupByRef = useRef<GroupBy>('series');
-  const selectedSeries = initialSeries;
   const groupByParam = searchParams.get('groupBy');
   const sortByParam = searchParams.get('sortBy');
   const groupBy: GroupBy = isGroupBy(groupByParam) ? groupByParam : 'series';
@@ -400,7 +397,7 @@ export const Bookshelf: FC<BookshelfProps> = ({
           </Button>
         </div>
       )}
-      {!selectedSeries && !isEmptyLibrary && (
+      {!isEmptyLibrary && (
         <section
           aria-label="Shelf controls"
           className="mb-5 space-y-3 rounded-xl border bg-card/70 p-3 shadow-sm sm:p-4"
@@ -570,23 +567,6 @@ export const Bookshelf: FC<BookshelfProps> = ({
             <Link to="/">Add a Drive folder</Link>
           </Button>
         </div>
-      ) : selectedSeries ? (
-        <>
-          <BookGrid
-            books={series.find((s) => s.name === selectedSeries)?.books || []}
-            viewMode={viewMode}
-            selectionMode={selectionMode}
-            selectedIds={selectedIds}
-            onToggleSelection={toggleSelection}
-          />
-          {!isLoading &&
-            (series.find((s) => s.name === selectedSeries)?.books.length ??
-              0) === 0 && (
-              <p className="py-12 text-center text-muted-foreground">
-                No books match this series and the current search or filters.
-              </p>
-            )}
-        </>
       ) : groupBy === 'none' ? (
         <>
           <BookGrid
@@ -612,7 +592,9 @@ export const Bookshelf: FC<BookshelfProps> = ({
         </>
       ) : (
         <>
-          {series.length > 0 && <SeriesGrid series={series} />}
+          {series.length > 0 && (
+            <SeriesGrid series={series} viewMode={viewMode} />
+          )}
           {!searchQuery && pendingBooks.size > 0 && (
             <PendingBooksGrid
               books={[...pendingBooks.values()]}

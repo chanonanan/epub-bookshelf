@@ -190,7 +190,7 @@ export default function BookDetailsPage({
           backTo={
             navigationState?.returnTo ??
             (book.series && seriesBookCount !== 1
-              ? `/series/${encodeURIComponent(book.series)}`
+              ? `/bookshelf?series=${encodeURIComponent(book.series)}&groupBy=none`
               : '/bookshelf')
           }
           backScrollY={navigationState?.returnScrollY}

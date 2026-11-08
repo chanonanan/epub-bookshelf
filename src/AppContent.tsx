@@ -21,7 +21,6 @@ import type { LibraryFolder } from './types/library';
 
 const HomePage = lazy(() => import('./pages/HomePage'));
 const BookshelfPage = lazy(() => import('./pages/BookshelfPage'));
-const SeriesPage = lazy(() => import('./pages/SeriesPage'));
 const BookDetailsPage = lazy(() => import('./pages/BookDetailsPage'));
 const SettingsPage = lazy(() => import('./pages/SettingsPage'));
 
@@ -175,12 +174,7 @@ export const AppContent = () => {
             />
             <Route
               path="/series/:series"
-              element={
-                <SeriesPage
-                  folders={libraryFolders}
-                  searchQuery={searchQuery}
-                />
-              }
+              element={<SeriesBookshelfRedirect />}
             />
             <Route
               path="/book/:id"
@@ -218,9 +212,24 @@ export const AppContent = () => {
 function LegacyBookshelfRedirect() {
   const { legacySeries } = useParams();
   return legacySeries ? (
-    <Navigate to={`/series/${encodeURIComponent(legacySeries)}`} replace />
+    <Navigate
+      to={`/bookshelf?series=${encodeURIComponent(legacySeries)}&groupBy=none`}
+      replace
+    />
   ) : (
     <Navigate to="/bookshelf" replace />
+  );
+}
+
+function SeriesBookshelfRedirect() {
+  const { series } = useParams();
+  const location = useLocation();
+  return (
+    <Navigate
+      to={`/bookshelf?series=${encodeURIComponent(series ?? '')}&groupBy=none`}
+      state={location.state}
+      replace
+    />
   );
 }
 
