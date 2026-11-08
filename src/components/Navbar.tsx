@@ -10,6 +10,7 @@ import {
   DialogTitle,
   DialogTrigger,
 } from './ui/dialog';
+import { useTranslate } from '@/lib/useTranslate';
 
 const SettingsPage = lazy(() => import('../pages/SettingsPage'));
 
@@ -19,14 +20,15 @@ interface NavbarProps {
 }
 
 export const Navbar: FC<NavbarProps> = ({ searchQuery, onSearchChange }) => {
+  const { t } = useTranslate();
   return (
     <header className="desktop-navbar sticky top-0 z-40 hidden w-full border-b border-border bg-background/95 backdrop-blur md:block">
       <div className="container-wrapper flex h-14 items-center justify-between gap-3">
         <NavLink
           to="/"
           end
-          aria-label="Home"
-          title="Home"
+          aria-label={t('common.home')}
+          title={t('common.home')}
           className="hidden h-9 w-9 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-accent hover:text-accent-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background md:inline-flex"
         >
           <House aria-hidden="true" className="h-5 w-5" />
@@ -36,8 +38,8 @@ export const Navbar: FC<NavbarProps> = ({ searchQuery, onSearchChange }) => {
             <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
             <input
               type="search"
-              aria-label="Search books"
-              placeholder="Search books..."
+              aria-label={t('common.searchBooks')}
+              placeholder={t('common.searchBooks')}
               className="h-9 w-[200px] rounded-md border border-input bg-transparent py-1 pl-9 pr-3 text-sm shadow-sm transition-colors placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
               value={searchQuery}
               onChange={(event) => onSearchChange(event.target.value)}
@@ -47,20 +49,20 @@ export const Navbar: FC<NavbarProps> = ({ searchQuery, onSearchChange }) => {
             <DialogTrigger asChild>
               <Button variant="outline" size="sm">
                 <Settings aria-hidden="true" />
-                Settings
+                {t('common.settings')}
               </Button>
             </DialogTrigger>
             <DialogContent className="max-h-[90dvh] max-w-2xl overflow-y-auto">
               <DialogHeader className="sr-only">
-                <DialogTitle>Settings</DialogTitle>
+                <DialogTitle>{t('common.settings')}</DialogTitle>
                 <DialogDescription>
-                  Manage Google Drive, local storage, and bookshelf preferences.
+                  {t('settings.googleDriveDescription')}
                 </DialogDescription>
               </DialogHeader>
               <Suspense
                 fallback={
                   <p className="text-sm text-muted-foreground">
-                    Loading settings…
+                    {t('settings.loadingSettings')}
                   </p>
                 }
               >

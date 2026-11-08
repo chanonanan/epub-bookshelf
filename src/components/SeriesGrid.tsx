@@ -1,6 +1,7 @@
 import type { BookMetadata } from '@/epubUtils';
 import { BookOpenCheck } from 'lucide-react';
 import { useLocation, useNavigate } from 'react-router-dom';
+import { useTranslate } from '@/lib/useTranslate';
 import {
   Card,
   CardContent,
@@ -32,6 +33,7 @@ export const SeriesGrid = ({
   groupBy?: GroupBy;
   pendingBooks?: PendingBook[];
 }) => {
+  const { t } = useTranslate();
   const navigate = useNavigate();
   const location = useLocation();
 
@@ -155,11 +157,11 @@ export const SeriesGrid = ({
             <div className="min-w-0 flex-1">
               <p className="line-clamp-2 text-sm font-medium">{group.name}</p>
               <p className="mt-1 line-clamp-1 text-xs text-muted-foreground">
-                {group.books[0]?.author || 'Unknown author'}
+                {group.books[0]?.author || t('common.unknownAuthor')}
               </p>
               {group.books.length > 1 && (
                 <p className="mt-1 line-clamp-1 text-xs text-muted-foreground">
-                  {group.books.length} books
+                  {t('bookshelf.bookCount', { count: group.books.length })}
                 </p>
               )}
             </div>

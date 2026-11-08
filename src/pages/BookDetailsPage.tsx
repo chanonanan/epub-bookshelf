@@ -13,6 +13,7 @@ import {
   refreshBookInfo,
 } from '../epubUtils';
 import { downloadFile } from '../googleDrive';
+import { useTranslate } from '@/lib/useTranslate';
 
 export default function BookDetailsPage({
   folders,
@@ -21,6 +22,7 @@ export default function BookDetailsPage({
   folders: LibraryFolder[];
   onSearchChange: (query: string) => void;
 }) {
+  const { t } = useTranslate();
   const { id } = useParams<{ id: string }>();
   const location = useLocation();
   const navigationState = location.state as {
@@ -40,7 +42,7 @@ export default function BookDetailsPage({
   useEffect(() => {
     const loadBook = async () => {
       if (!id) {
-        setError('Invalid book ID');
+        setError(t('bookDetails.invalidBookId'));
         setIsLoading(false);
         return;
       }
@@ -49,7 +51,7 @@ export default function BookDetailsPage({
         // Load book metadata from cache
         const metadata = await getMetadataById(id);
         if (!metadata) {
-          setError('Book not found');
+          setError(t('bookDetails.bookNotFound'));
           setIsLoading(false);
           return;
         }
@@ -57,7 +59,7 @@ export default function BookDetailsPage({
         setBook(metadata);
       } catch (err) {
         console.error('Error loading book:', err);
-        setError('Failed to load book details');
+        setError(t('bookDetails.failedToLoadBookDetails'));
       } finally {
         setIsLoading(false);
       }
@@ -131,7 +133,7 @@ export default function BookDetailsPage({
       const blob = await downloadFile(book.id);
 
       if (!blob) {
-        throw new Error('Failed to download file');
+        throw new Error(t('bookDetails.failedToDownload'));
       }
 
       // Create download link with proper filename
@@ -150,7 +152,7 @@ export default function BookDetailsPage({
       }, 100);
     } catch (err) {
       console.error('Error downloading book:', err);
-      setError('Failed to download book');
+      setError(t('bookDetails.failedToDownload'));
     } finally {
       setIsDownloading(false);
     }
@@ -212,7 +214,7 @@ export default function BookDetailsPage({
                 className="w-full"
                 disabled={isDownloading}
               >
-                {isDownloading ? 'Downloading...' : 'Download EPUB'}
+                {isDownloading ? t('bookDetails.downloading') : t('bookDetails.downloadEpub')}
               </Button>
               <Button
                 onClick={handleRefresh}
@@ -220,7 +222,7 @@ export default function BookDetailsPage({
                 className="w-full"
                 disabled={isRefreshing}
               >
-                {isRefreshing ? 'Refreshing...' : 'Refresh Metadata'}
+                {isRefreshing ? t('common.refreshing') : t('bookDetails.refreshMetadata')}
               </Button>
             </div>
           </div>
@@ -230,7 +232,7 @@ export default function BookDetailsPage({
                 {book.author && (
                   <tr>
                     <th scope="row" className="pr-4 text-left align-top">
-                      Author:
+                      {t('bookDetails.author')}:
                     </th>
                     <td>
                       <Link
@@ -246,7 +248,7 @@ export default function BookDetailsPage({
                 {book.series && (
                   <tr>
                     <th scope="row" className="pr-4 text-left align-top">
-                      Series:
+                      {t('bookDetails.series')}:
                     </th>
                     <td>
                       <Link
@@ -261,10 +263,10 @@ export default function BookDetailsPage({
                   </tr>
                 )}
                 {[
-                  ['Language', book.language],
-                  ['Publisher', book.publisher],
-                  ['Published', book.publishDate],
-                  ['File size', book.fileSize],
+                  [t('bookDetails.language'), book.language],
+                  [t('bookDetails.publisher'), book.publisher],
+                  [t('bookDetails.published'), book.publishDate],
+                  [t('bookDetails.fileSize'), book.fileSize],
                 ].map(
                   ([label, value]) =>
                     value && (
@@ -280,7 +282,7 @@ export default function BookDetailsPage({
             </table>
             {sanitizedDescription && (
               <section className="prose mt-6 max-w-none dark:prose-invert">
-                <h2 className="mb-3 text-base font-semibold">Description</h2>
+                <h2 className="mb-3 text-base font-semibold">{t('bookDetails.description')}</h2>
                 <div
                   className="book-description text-muted-foreground"
                   dangerouslySetInnerHTML={{ __html: sanitizedDescription }}
@@ -289,7 +291,7 @@ export default function BookDetailsPage({
             )}
             {book.tags && book.tags.length > 0 && (
               <section className="mt-5">
-                <h2 className="mb-2 font-semibold">Tags</h2>
+                <h2 className="mb-2 font-semibold">{t('bookDetails.tags')}</h2>
                 <div className="flex flex-wrap gap-2">
                   {book.tags.map((tag) => (
                     <Badge key={tag} variant="outline">

@@ -1,4 +1,5 @@
 import { AlertCircle, LoaderCircle } from 'lucide-react';
+import { useTranslate } from '@/lib/useTranslate';
 
 export interface PendingBook {
   id: string;
@@ -13,9 +14,10 @@ export function PendingBookCard({
   book: PendingBook;
   viewMode: 'grid' | 'list';
 }) {
+  const { t } = useTranslate();
   return (
     <div
-      aria-label={`${book.failed ? 'Could not load' : 'Loading'} ${book.name}`}
+      aria-label={book.failed ? t('pendingBook.failedToLoad', { name: book.name }) : t('pendingBook.loading', { name: book.name })}
       className={`min-w-0 ${
         viewMode === 'list'
           ? 'flex h-full items-center gap-3 rounded-lg border bg-card p-2'

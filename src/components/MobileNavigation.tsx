@@ -1,6 +1,7 @@
 import { House, LibraryBig, Search, Settings, X } from 'lucide-react';
 import { type CSSProperties, useEffect, useRef, useState } from 'react';
 import { NavLink, useLocation, useNavigate } from 'react-router-dom';
+import { useTranslate } from '@/lib/useTranslate';
 
 type MobileNavigationStyle = CSSProperties & {
   '--mobile-dock-viewport-offset': string;
@@ -30,6 +31,7 @@ export function MobileNavigation({
   searchQuery,
   onSearchChange,
 }: MobileNavigationProps) {
+  const { t } = useTranslate();
   const location = useLocation();
   const { pathname } = location;
   const navigate = useNavigate();
@@ -152,7 +154,7 @@ export function MobileNavigation({
   return (
     <nav
       ref={navigationRef}
-      aria-label="Mobile navigation"
+      aria-label={t('common.mobileNavigation')}
       className={`mobile-dock ${isSearchOpen ? 'is-search-open' : ''}`}
       style={
         {
@@ -173,7 +175,7 @@ export function MobileNavigation({
         <NavLink
           to="/"
           end
-          aria-label="Home"
+          aria-label={t('common.home')}
           aria-current={isHomeActive ? 'page' : undefined}
           onClick={closeSearch}
           className={({ isActive }) =>
@@ -184,7 +186,7 @@ export function MobileNavigation({
         </NavLink>
         <NavLink
           to="/bookshelf"
-          aria-label="Bookshelf"
+          aria-label={t('common.bookshelf')}
           aria-current={isShelfActive ? 'page' : undefined}
           onClick={closeSearch}
           className={`mobile-nav-link ${isShelfActive ? 'is-active' : ''}`}
@@ -193,7 +195,7 @@ export function MobileNavigation({
         </NavLink>
         <NavLink
           to="/settings"
-          aria-label="Settings"
+          aria-label={t('common.settings')}
           aria-current={isSettingsActive ? 'page' : undefined}
           onClick={closeSearch}
           className={`mobile-nav-link ${isSettingsActive ? 'is-active' : ''}`}
@@ -205,7 +207,7 @@ export function MobileNavigation({
       <button
         ref={searchTriggerRef}
         type="button"
-        aria-label="Search books"
+        aria-label={t('common.searchBooks')}
         tabIndex={isSearchOpen ? -1 : 0}
         aria-hidden={isSearchOpen}
         onClick={openSearch}
@@ -224,8 +226,8 @@ export function MobileNavigation({
         <input
           ref={searchInputRef}
           type="search"
-          aria-label="Search books"
-          placeholder="Search books..."
+          aria-label={t('common.searchBooks')}
+          placeholder={t('common.searchBooks')}
           value={searchQuery}
           onFocus={() => {
             isSearchInputFocusedRef.current = true;
@@ -236,7 +238,7 @@ export function MobileNavigation({
         />
         <button
           type="button"
-          aria-label="Close search"
+          aria-label={t('common.closeSearch')}
           onClick={returnFromSearch}
           className="mobile-search-close"
         >

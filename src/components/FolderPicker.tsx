@@ -2,6 +2,7 @@ import { getTokens } from '@/googleDrive';
 import React, { useCallback, useEffect, useState } from 'react';
 import '../types/google.d';
 import { Button } from './ui/button';
+import { useTranslate } from '@/lib/useTranslate';
 
 interface FolderPickerProps {
   onFolderSelect: (
@@ -20,6 +21,7 @@ const FolderPicker: React.FC<FolderPickerProps> = ({
   onFolderSelect,
   apiKey,
 }) => {
+  const { t } = useTranslate();
   const [isPickerLoaded, setIsPickerLoaded] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -64,7 +66,7 @@ const FolderPicker: React.FC<FolderPickerProps> = ({
       if (!tokens) {
         console.error('No access token available');
         setError(
-          "Google sign-in did not complete. If you're using VS Code's embedded browser, open the app in a regular browser and try again.",
+          t('folderPicker.googleSignInIncomplete'),
         );
         return;
       }
@@ -96,7 +98,7 @@ const FolderPicker: React.FC<FolderPickerProps> = ({
             void Promise.resolve(onFolderSelect(folder.id, folder.name)).catch(
               (err) => {
                 console.error('Failed to add Drive folder:', err);
-                setError('Failed to add this folder to your library.');
+                setError(t('folderPicker.failedToAddFolder'));
               },
             );
           }
@@ -108,7 +110,7 @@ const FolderPicker: React.FC<FolderPickerProps> = ({
     } catch (error) {
       console.error('Error showing picker:', error);
       setError(
-        "Could not open Google Drive. If you're using VS Code's embedded browser, try the app in a regular browser.",
+        t('folderPicker.couldNotOpenGoogleDrive'),
       );
     } finally {
       setIsLoading(false);
@@ -122,7 +124,7 @@ const FolderPicker: React.FC<FolderPickerProps> = ({
         variant="outline"
         disabled={!isPickerLoaded || isLoading}
       >
-        {isLoading ? 'Loading...' : 'Add Drive folder'}
+        {isLoading ? t('folderPicker.loading') : t('folderPicker.addDriveFolder')}
       </Button>
       {error && (
         <p className="max-w-sm text-center text-sm text-destructive">{error}</p>

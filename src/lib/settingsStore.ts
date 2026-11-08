@@ -3,11 +3,13 @@ import { useSyncExternalStore } from 'react';
 export type AppTheme = 'system' | 'light' | 'dark';
 export type GridDensity = 'compact' | 'spacious';
 export type DefaultSortOrder = 'dateAdded' | 'alphabetical' | 'lastRead';
+export type AppLanguage = 'en' | 'th';
 
 export interface AppSettings {
   gridDensity: GridDensity;
   theme: AppTheme;
   defaultSortOrder: DefaultSortOrder;
+  language: AppLanguage;
   defaultDownloadFormat: 'epub' | 'kepub';
   allowCellularDownloads: boolean;
   diagnosticNetworkLogs: boolean;
@@ -17,6 +19,7 @@ export const DEFAULT_SETTINGS: AppSettings = {
   gridDensity: 'spacious',
   theme: 'dark',
   defaultSortOrder: 'dateAdded',
+  language: 'en',
   defaultDownloadFormat: 'epub',
   allowCellularDownloads: false,
   diagnosticNetworkLogs: false,
@@ -60,6 +63,10 @@ function getSettings(): AppSettings {
       values.defaultSortOrder === 'lastRead'
         ? values.defaultSortOrder
         : DEFAULT_SETTINGS.defaultSortOrder,
+    language:
+      values.language === 'en' || values.language === 'th'
+        ? values.language
+        : DEFAULT_SETTINGS.language,
     defaultDownloadFormat:
       values.defaultDownloadFormat === 'kepub' ||
       values.defaultDownloadFormat === 'epub'

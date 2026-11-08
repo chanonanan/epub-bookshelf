@@ -2,10 +2,12 @@ import { Button } from '@/components/ui/button';
 import { useTheme } from '@/components/ThemeProvider';
 import {
   DEFAULT_SETTINGS,
+  type AppLanguage,
   type AppTheme,
   resetSettings,
   useSettingsStore,
 } from '@/lib/settingsStore';
+import i18n from '@/lib/i18n';
 import {
   AlertTriangle,
   Check,
@@ -24,6 +26,7 @@ import {
   getTokens,
   initializeGoogleAuth,
 } from '../googleDrive';
+import { useTranslate } from '@/lib/useTranslate';
 
 type StorageEstimate = {
   usage?: number;
@@ -111,6 +114,7 @@ const fieldClassName =
   'h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm shadow-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring';
 
 export default function SettingsPage() {
+  const { t } = useTranslate();
   const [settings, updateSettings] = useSettingsStore();
   const { theme, setTheme } = useTheme();
   const [isConnected, setIsConnected] = useState(false);
@@ -122,7 +126,7 @@ export default function SettingsPage() {
 
   const refreshStorageEstimate = useCallback(async () => {
     if (!navigator.storage?.estimate) {
-      setStorageError('Storage estimates are not supported by this browser.');
+      setStorageError(t('settings.storageNotSupported'));
       return;
     }
 
@@ -131,7 +135,7 @@ export default function SettingsPage() {
       setStorageError('');
     } catch (error) {
       console.error('Failed to estimate local storage usage:', error);
-      setStorageError('Could not read the browser storage estimate.');
+      setStorageError(t('settings.couldNotReadStorage'));
     }
   }, []);
 
@@ -146,7 +150,7 @@ export default function SettingsPage() {
       })
       .catch((error: unknown) => {
         console.error('Failed to read Google account status:', error);
-        if (active) setConnectionError('Could not read the saved account status.');
+        if (active) setConnectionError(t('settings.couldNotReadAccountStatus'));
       });
     void refreshStorageEstimate();
     return () => {
@@ -160,6 +164,12 @@ export default function SettingsPage() {
     }
   }, [settings.theme, theme, updateSettings]);
 
+  useEffect(() => {
+    if (i18n.language !== settings.language) {
+      void i18n.changeLanguage(settings.language);
+    }
+  }, [settings.language, i18n.language]);
+
   const handleAuthenticate = async () => {
     setIsAuthenticating(true);
     setConnectionError('');
@@ -167,14 +177,14 @@ export default function SettingsPage() {
       await initializeGoogleAuth();
       const tokens = await getTokens();
       if (!tokens) {
-        throw new Error('Google authentication was cancelled or not completed.');
+        throw new Error(t('settings.googleAuthCancelled'));
       }
       setIsConnected(true);
-      setActionMessage('Google Drive account connected.');
+      setActionMessage(t('settings.googleDriveConnected'));
     } catch (error) {
       console.error('Google Drive authentication failed:', error);
       setConnectionError(
-        error instanceof Error ? error.message : 'Google authentication failed.',
+        error instanceof Error ? error.message : t('settings.googleAuthFailed'),
       );
     } finally {
       setIsAuthenticating(false);
@@ -183,14 +193,14 @@ export default function SettingsPage() {
 
   const handleRefreshToken = () => {
     console.log('Refresh Google token requested.');
-    setActionMessage('Token refresh is not implemented yet.');
+    setActionMessage(t('settings.tokenRefreshNotImplemented'));
   };
 
   const handleDisconnect = async () => {
     try {
       await disconnectGoogleAccount();
       setIsConnected(false);
-      setActionMessage('Google Drive account disconnected on this device.');
+      setActionMessage(t('settings.googleDriveDisconnected'));
     } catch (error) {
       console.error('Failed to disconnect Google Drive account:', error);
       setConnectionError('Could not remove the saved Google account token.');
@@ -200,34 +210,32 @@ export default function SettingsPage() {
   const handleClearCache = () => {
     console.log('Clear cover cache requested.');
     setActionMessage(
-      'Cover cache clearing is not implemented yet; cached EPUB metadata and covers are unchanged.',
+      t('settings.coverCacheNotImplemented'),
     );
   };
 
   const forceResync = () => {
     console.log('Force full Drive resync requested.');
-    setActionMessage('Full Drive resync is not implemented yet.');
+    setActionMessage(t('settings.fullDriveResyncNotImplemented'));
   };
 
   const handleServiceWorkerUpdate = async () => {
     try {
       const registration = await navigator.serviceWorker?.getRegistration();
       if (!registration) {
-        setActionMessage('No service worker is registered for this app.');
+        setActionMessage(t('settings.noServiceWorker'));
         return;
       }
       await registration.update();
       window.location.reload();
     } catch (error) {
       console.error('Failed to check for service worker updates:', error);
-      setActionMessage('Could not check for service worker updates.');
+      setActionMessage(t('settings.updateFailed'));
     }
   };
 
   const handleClearAllData = async () => {
-    const confirmed = window.confirm(
-      'Clear all locally cached books, library selections, and preferences? Your Google Drive files will not be changed, and your account token will be kept.',
-    );
+    const confirmed = window.confirm(t('settings.clearAllDataConfirm'));
     if (!confirmed) return;
 
     try {
@@ -239,7 +247,7 @@ export default function SettingsPage() {
       window.location.reload();
     } catch (error) {
       console.error('Failed to clear local app data:', error);
-      setActionMessage('Could not clear all local data. See the console for details.');
+      setActionMessage(t('settings.couldNotClearAllData'));
     }
   };
 
@@ -248,22 +256,26 @@ export default function SettingsPage() {
     setTheme(nextTheme);
   };
 
+  const handleLanguageChange = (nextLanguage: AppLanguage) => {
+    updateSettings({ language: nextLanguage });
+  };
+
   return (
     <div className="mx-auto max-w-2xl space-y-5 py-8">
       <header className="mb-7">
         <div className="mb-3 flex h-11 w-11 items-center justify-center rounded-xl bg-primary/10 text-primary">
           <Settings aria-hidden="true" className="h-5 w-5" />
         </div>
-        <h1 className="text-2xl font-semibold">Settings</h1>
+        <h1 className="text-2xl font-semibold">{t('common.settings')}</h1>
         <p className="mt-1 text-sm text-muted-foreground">
-          Manage your Drive connection, local cache, and bookshelf preferences.
+          {t('settings.managePreferences')}
         </p>
       </header>
 
       <Section
         icon={Cloud}
-        title="Google Drive integration"
-        description="Connect the Drive account that contains your EPUB library."
+        title={t('settings.googleDrive')}
+        description={t('settings.googleDriveDescription')}
       >
         <div className="flex flex-wrap items-center justify-between gap-3 rounded-lg bg-muted/50 p-3">
           <div className="flex items-center gap-2 text-sm">
@@ -273,7 +285,7 @@ export default function SettingsPage() {
               }`}
             />
             <span className="font-medium">
-              {isConnected ? 'Connected' : 'Disconnected'}
+              {isConnected ? t('settings.connected') : t('settings.disconnected')}
             </span>
           </div>
           <div className="flex flex-wrap gap-2">
@@ -282,7 +294,7 @@ export default function SettingsPage() {
               onClick={() => void handleAuthenticate()}
               disabled={isAuthenticating}
             >
-              {isAuthenticating ? 'Connecting…' : 'Authenticate'}
+              {isAuthenticating ? t('settings.connecting') : t('settings.connect')}
             </Button>
             <Button
               size="sm"
@@ -291,7 +303,7 @@ export default function SettingsPage() {
               disabled={!isConnected}
             >
               <RefreshCw aria-hidden="true" />
-              Refresh Token
+              {t('settings.refreshToken')}
             </Button>
             <Button
               size="sm"
@@ -310,19 +322,19 @@ export default function SettingsPage() {
         )}
         <Button variant="outline" onClick={forceResync}>
           <RefreshCw aria-hidden="true" />
-          Force Full Resync
+          {t('settings.forceFullResync')}
         </Button>
       </Section>
 
       <Section
         icon={Database}
-        title="Local storage & cache"
-        description="EPUB files are not stored here; only app data and cached book information are kept locally."
+        title={t('settings.localStorage')}
+        description={t('settings.localStorageDescription')}
       >
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div>
             <p className="text-sm font-medium">
-              Estimated local storage used
+              {t('settings.estimatedStorageUsed')}
             </p>
             <p className="text-sm text-muted-foreground">
               {formatBytes(storageEstimate?.usage)}
@@ -340,8 +352,7 @@ export default function SettingsPage() {
           </Button>
         </div>
         <p className="text-xs text-muted-foreground">
-          The browser reports origin-wide usage, so this estimate may include
-          other site data.
+          {t('settings.storageUsageNote')}
         </p>
         {storageError && (
           <p role="status" className="text-sm text-muted-foreground">
@@ -359,27 +370,26 @@ export default function SettingsPage() {
               className="mt-0.5 h-4 w-4 text-destructive"
             />
             <div>
-              <p className="text-sm font-medium">Danger zone</p>
+              <p className="text-sm font-medium">{t('settings.dangerZone')}</p>
               <p className="text-sm text-muted-foreground">
-                Remove local app data and return to a fresh state. Drive files
-                and your saved account token are not affected.
+                {t('settings.dangerZoneDescription')}
               </p>
             </div>
           </div>
           <Button variant="destructive" onClick={() => void handleClearAllData()}>
             <ShieldAlert aria-hidden="true" />
-            Clear All Data
+            {t('settings.clearAllData')}
           </Button>
         </div>
       </Section>
 
       <Section
         icon={Smartphone}
-        title="Library display preferences"
-        description="Choose how your bookshelf is displayed and sorted."
+        title={t('settings.libraryDisplayPreferences')}
+        description={t('settings.libraryDisplayPreferencesDescription')}
       >
         <fieldset className="space-y-2">
-          <legend className="text-sm font-medium">Grid density</legend>
+          <legend className="text-sm font-medium">{t('settings.gridDensity')}</legend>
           <div className="flex gap-2">
             {(['compact', 'spacious'] as const).map((density) => (
               <Button
@@ -392,13 +402,13 @@ export default function SettingsPage() {
                 aria-pressed={settings.gridDensity === density}
                 onClick={() => updateSettings({ gridDensity: density })}
               >
-                {density === 'compact' ? 'Compact' : 'Spacious'}
+                {density === 'compact' ? t('settings.compact') : t('settings.spacious')}
               </Button>
             ))}
           </div>
         </fieldset>
         <label className="block space-y-2 text-sm font-medium">
-          Theme
+          {t('settings.theme')}
           <select
             className={fieldClassName}
             value={theme}
@@ -406,13 +416,13 @@ export default function SettingsPage() {
               handleThemeChange(event.target.value as AppTheme)
             }
           >
-            <option value="system">System Default</option>
-            <option value="light">Light</option>
-            <option value="dark">Dark</option>
+            <option value="system">{t('settings.systemDefault')}</option>
+            <option value="light">{t('common.light')}</option>
+            <option value="dark">{t('common.dark')}</option>
           </select>
         </label>
         <label className="block space-y-2 text-sm font-medium">
-          Default Sort Order
+          {t('settings.defaultSortOrder')}
           <select
             className={fieldClassName}
             value={settings.defaultSortOrder}
@@ -425,21 +435,34 @@ export default function SettingsPage() {
               })
             }
           >
-            <option value="dateAdded">Date Added</option>
-            <option value="alphabetical">Alphabetical</option>
-            <option value="lastRead">Last Read</option>
+            <option value="dateAdded">{t('settings.dateAdded')}</option>
+            <option value="alphabetical">{t('settings.alphabetical')}</option>
+            <option value="lastRead">{t('settings.lastRead')}</option>
+          </select>
+        </label>
+        <label className="block space-y-2 text-sm font-medium">
+          {t('settings.language')}
+          <select
+            className={fieldClassName}
+            value={settings.language}
+            onChange={(event) =>
+              handleLanguageChange(event.target.value as AppLanguage)
+            }
+          >
+            <option value="en">{t('settings.languageEnglish')}</option>
+            <option value="th">{t('settings.languageThai')}</option>
           </select>
         </label>
       </Section>
 
       <Section
         icon={Check}
-        title="Export & download"
-        description="Set defaults for EPUB downloads on this device."
+        title={t('settings.exportDownload')}
+        description={t('settings.exportDownloadDescription')}
       >
         <fieldset className="space-y-2">
           <legend className="text-sm font-medium">
-            Default Download Format
+            {t('settings.defaultDownloadFormat')}
           </legend>
           <div className="flex gap-2">
             <Button
@@ -453,7 +476,7 @@ export default function SettingsPage() {
               aria-pressed={settings.defaultDownloadFormat === 'epub'}
               onClick={() => updateSettings({ defaultDownloadFormat: 'epub' })}
             >
-              Standard EPUB
+              {t('settings.standardEpub')}
             </Button>
             <Button
               type="button"
@@ -466,13 +489,13 @@ export default function SettingsPage() {
               aria-pressed={settings.defaultDownloadFormat === 'kepub'}
               onClick={() => updateSettings({ defaultDownloadFormat: 'kepub' })}
             >
-              KEPUB
+              {t('settings.kepub')}
             </Button>
           </div>
         </fieldset>
         <Toggle
-          label="Allow background downloading over cellular data"
-          description="Allow downloads when a metered mobile connection is in use."
+          label={t('settings.allowCellularDownloads')}
+          description={t('settings.allowCellularDownloadsDescription')}
           checked={settings.allowCellularDownloads}
           onChange={(allowCellularDownloads) =>
             updateSettings({ allowCellularDownloads })
@@ -482,8 +505,8 @@ export default function SettingsPage() {
 
       <Section
         icon={Wrench}
-        title="Advanced / developer"
-        description="Tools for app updates and troubleshooting."
+        title={t('settings.advancedDeveloper')}
+        description={t('settings.advancedDeveloperDescription')}
       >
         <Button
           variant="outline"
@@ -491,11 +514,11 @@ export default function SettingsPage() {
           onClick={() => void handleServiceWorkerUpdate()}
         >
           <RefreshCw aria-hidden="true" />
-          Service Worker Update & Refresh
+          {t('settings.serviceWorkerUpdate')}
         </Button>
         <Toggle
-          label="Enable Diagnostic Network Logs in UI"
-          description="Allow network diagnostics to be surfaced in the interface."
+          label={t('settings.diagnosticNetworkLogs')}
+          description={t('settings.diagnosticNetworkLogsDescription')}
           checked={settings.diagnosticNetworkLogs}
           onChange={(diagnosticNetworkLogs) =>
             updateSettings({ diagnosticNetworkLogs })
@@ -504,7 +527,7 @@ export default function SettingsPage() {
       </Section>
 
       <p className="pb-2 text-center text-xs text-muted-foreground">
-        Version {__APP_VERSION__}
+        {t('settings.version', { version: __APP_VERSION__ })}
       </p>
 
       {actionMessage && (

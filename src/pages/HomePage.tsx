@@ -19,6 +19,7 @@ import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { getBooksInFolder } from '../epubUtils';
 import { initializeGoogleAuth, listEpubFiles } from '../googleDrive';
+import { useTranslate } from '@/lib/useTranslate';
 
 interface HomePageProps {
   isLoadingFolders: boolean;
@@ -41,6 +42,7 @@ export default function HomePage({
   onFolderCountsChange,
   onFolderRefreshed,
 }: HomePageProps) {
+  const { t } = useTranslate();
   const [isAuthLoading, setIsAuthLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [countErrors, setCountErrors] = useState<Record<string, string>>({});
@@ -62,7 +64,7 @@ export default function HomePage({
       .catch((err) => {
         console.error('Failed to initialize Google auth:', err);
         if (active) {
-          setError('Failed to initialize Google authentication');
+          setError(t('home.failedToInitGoogleAuth'));
           setIsAuthLoading(false);
         }
       });
@@ -88,7 +90,7 @@ export default function HomePage({
           if (active) {
             setCountErrors((current) => ({
               ...current,
-              [folder.id]: 'Count unavailable',
+              [folder.id]: t('home.countUnavailable'),
             }));
           }
           return null;
@@ -252,9 +254,9 @@ export default function HomePage({
       <section aria-label="Bookshelf folders">
         <div className="mb-4 flex flex-wrap items-center justify-between gap-4">
           <div>
-            <h2 className="text-lg font-semibold">Drive folders</h2>
+            <h2 className="text-lg font-semibold">{t('home.driveFolders')}</h2>
             <p className="text-sm text-muted-foreground">
-              Manage the folders included in your bookshelf.
+              {t('home.manageFolders')}
             </p>
           </div>
           <FolderPicker
@@ -265,9 +267,9 @@ export default function HomePage({
         {libraryFolders.length === 0 ? (
           <div className="rounded-lg border border-dashed p-10 text-center">
             <FolderOpen className="mx-auto mb-3 h-8 w-8 text-muted-foreground" />
-            <h3 className="font-medium">No folders added yet</h3>
+            <h3 className="font-medium">{t('home.noFoldersAddedYet')}</h3>
             <p className="mt-1 text-sm text-muted-foreground">
-              Add a Drive folder to start building your bookshelf.
+              {t('home.addDriveFolderToStart')}
             </p>
           </div>
         ) : (
@@ -284,8 +286,8 @@ export default function HomePage({
                     <p className="text-sm text-muted-foreground">
                       {countErrors[folder.id] ??
                         (folder.bookCount === undefined
-                          ? 'Counting EPUBs...'
-                          : `${folder.bookCount} ${folder.bookCount === 1 ? 'book' : 'books'}`)}
+                          ? t('home.countingEpubs')
+                          : `${folder.bookCount} ${t(folder.bookCount === 1 ? 'common.book' : 'common.books')}`)}
                     </p>
                   </div>
                 </div>
@@ -294,7 +296,7 @@ export default function HomePage({
                     <Button
                       variant="ghost"
                       size="icon"
-                      aria-label={`Actions for ${folder.name}`}
+                      aria-label={t('common.actionsFor', { name: folder.name })}
                       disabled={
                         refreshingFolders.has(folder.id) ||
                         removingFolders.has(folder.id)
@@ -312,14 +314,14 @@ export default function HomePage({
                       onClick={() => void refreshFolder(folder)}
                     >
                       <RefreshCw />
-                      Refresh
+                      {t('common.refresh')}
                     </DropdownMenuItem>
                     <DropdownMenuItem
                       onClick={() => void removeFolder(folder)}
                       className="text-destructive focus:text-destructive"
                     >
                       <Trash2 />
-                      Remove from library
+                      {t('home.removeFromLibrary')}
                     </DropdownMenuItem>
                   </DropdownMenuContent>
                 </DropdownMenu>

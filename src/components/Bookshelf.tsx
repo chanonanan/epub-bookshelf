@@ -26,6 +26,7 @@ import { Link, useLocation, useSearchParams } from 'react-router-dom';
 import { BookGrid } from './BookGrid';
 import { SeriesGrid, type SeriesGroup } from './SeriesGrid';
 import { Button } from './ui/button';
+import { useTranslate } from '@/lib/useTranslate';
 
 interface BookshelfProps {
   folders: LibraryFolder[];
@@ -70,6 +71,7 @@ export const Bookshelf: FC<BookshelfProps> = ({
   folders,
   searchQuery = '',
 }) => {
+  const { t } = useTranslate();
   const [searchParams, setSearchParams] = useSearchParams();
   const location = useLocation();
   const navigationState = location.state as ShelfNavigationState | null;
@@ -413,7 +415,7 @@ export const Bookshelf: FC<BookshelfProps> = ({
     setIsRefreshingSelected(false);
     if (failedIds.length > 0) {
       setBulkActionError(
-        `Could not refresh ${failedIds.length} selected book${failedIds.length === 1 ? '' : 's'}.`,
+        t('bookshelf.couldNotRefresh', { count: failedIds.length }),
       );
     } else {
       setSelectionMode(false);
@@ -498,7 +500,7 @@ export const Bookshelf: FC<BookshelfProps> = ({
             if (processed - lastAnnouncedProcessedRef.current >= 20) {
               lastAnnouncedProcessedRef.current = processed;
               setAnnouncedProgress(
-                `Processed ${processed} of ${discovered} EPUBs so far.`,
+                t('bookshelf.processingProgress', { processed, discovered }),
               );
             }
           },
@@ -518,10 +520,10 @@ export const Bookshelf: FC<BookshelfProps> = ({
       bookshelfBooksCache.set(shelfKey, completedBooks);
       setLoadedCacheKey(shelfKey);
       setLoading(false);
-      setAnnouncedProgress(`Finished processing ${processedOffset} EPUBs.`);
+      setAnnouncedProgress(t('bookshelf.processingFinished', { count: processedOffset }));
     } catch (err) {
       if (loadId === loadIdRef.current) {
-        setError('Failed to load one or more Drive folders. Please try again.');
+        setError(t('bookshelf.failedToLoadFolders'));
         setLoadedCacheKey(shelfKey);
         setLoading(false);
       }
@@ -553,9 +555,9 @@ export const Bookshelf: FC<BookshelfProps> = ({
       </span>
       {error && (
         <div className="flex items-center justify-between gap-4 py-4 text-sm text-destructive">
-          <p>{error} Showing books found so far.</p>
+          <p>{error} {t('bookshelf.showingBooksSoFar')}</p>
           <Button variant="outline" onClick={() => void loadBooks(folders)}>
-            Retry
+            {t('bookshelf.retry')}
           </Button>
         </div>
       )}
@@ -566,7 +568,9 @@ export const Bookshelf: FC<BookshelfProps> = ({
             type="button"
             className="shelf-menu-trigger"
             aria-label={
-              isControlsOpen ? 'Close bookshelf menu' : 'Open bookshelf menu'
+              isControlsOpen
+                ? t('bookshelf.closeMenu')
+                : t('bookshelf.openMenu')
             }
             aria-expanded={isControlsOpen}
             aria-controls="shelf-controls-panel"
@@ -619,16 +623,16 @@ export const Bookshelf: FC<BookshelfProps> = ({
                   tabIndex={-1}
                   className="text-lg font-semibold tracking-tight"
                 >
-                  Shelf controls
+                  {t('bookshelf.shelfControls')}
                 </h2>
                 <p className="mt-1 text-sm text-muted-foreground">
-                  Group, sort, and organize your books.
+                  {t('bookshelf.organizeDescription')}
                 </p>
               </div>
             </header>
             <div className="shelf-filter-selects">
               <label className="sr-only" htmlFor="shelf-group-by">
-                Group books by
+                {t('bookshelf.groupByLabel')}
               </label>
               <select
                 id="shelf-group-by"
@@ -640,13 +644,13 @@ export const Bookshelf: FC<BookshelfProps> = ({
                 }}
                 className="shelf-filter-select h-10 min-w-32 rounded-md border border-input bg-background px-3 text-sm"
               >
-                <option value="series">Group: Series</option>
-                <option value="author">Group: Author</option>
-                <option value="tags">Group: Tag</option>
-                <option value="none">All books</option>
+                <option value="series">{t('bookshelf.groupSeries')}</option>
+                <option value="author">{t('bookshelf.groupAuthor')}</option>
+                <option value="tags">{t('bookshelf.groupTag')}</option>
+                <option value="none">{t('bookshelf.groupAllBooks')}</option>
               </select>
               <label className="sr-only" htmlFor="shelf-sort-by">
-                Sort books by
+                {t('bookshelf.sortByLabel')}
               </label>
               <select
                 id="shelf-sort-by"
@@ -656,21 +660,21 @@ export const Bookshelf: FC<BookshelfProps> = ({
                 }
                 className="shelf-filter-select h-10 min-w-32 rounded-md border border-input bg-background px-3 text-sm"
               >
-                <option value="title">Sort: Title</option>
-                <option value="author">Sort: Author</option>
-                <option value="series">Sort: Series</option>
-                <option value="publishDate">Sort: Published</option>
+                <option value="title">{t('bookshelf.sortTitle')}</option>
+                <option value="author">{t('bookshelf.sortAuthor')}</option>
+                <option value="series">{t('bookshelf.sortSeries')}</option>
+                <option value="publishDate">{t('bookshelf.sortPublished')}</option>
               </select>
             </div>
             <div className="shelf-control-actions">
               <div
                 role="group"
-                aria-label="Shelf layout"
+                aria-label={t('bookshelf.shelfLayout')}
                 className="shelf-layout-toggle flex rounded-md border bg-background p-0.5"
               >
                 <button
                   type="button"
-                  aria-label="Grid view"
+                  aria-label={t('bookshelf.gridView')}
                   aria-pressed={viewMode === 'grid'}
                   onClick={() => updateShelfParam('view', 'grid', 'grid')}
                   className={`flex h-9 w-10 items-center justify-center rounded-md transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring ${
@@ -683,7 +687,7 @@ export const Bookshelf: FC<BookshelfProps> = ({
                 </button>
                 <button
                   type="button"
-                  aria-label="List view"
+                  aria-label={t('bookshelf.listView')}
                   aria-pressed={viewMode === 'list'}
                   onClick={() => updateShelfParam('view', 'list', 'grid')}
                   className={`flex h-9 w-10 items-center justify-center rounded-md transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring ${
@@ -703,7 +707,7 @@ export const Bookshelf: FC<BookshelfProps> = ({
                 onClick={handleSelectionModeChange}
               >
                 <CheckSquare aria-hidden="true" />
-                {selectionMode ? 'Done selecting' : 'Select books'}
+                {selectionMode ? t('bookshelf.doneSelecting') : t('bookshelf.selectBooks')}
               </Button>
               {selectionMode && (
                 <>
@@ -711,7 +715,7 @@ export const Bookshelf: FC<BookshelfProps> = ({
                     className="text-sm text-muted-foreground"
                     aria-live="polite"
                   >
-                    {selectedBooks.length} selected
+                    {selectedBooks.length} {t('bookshelf.selected')}
                   </span>
                   <Button
                     type="button"
@@ -727,8 +731,8 @@ export const Bookshelf: FC<BookshelfProps> = ({
                       className={isRefreshingSelected ? 'animate-spin' : ''}
                     />
                     {isRefreshingSelected
-                      ? 'Refreshing...'
-                      : 'Refresh metadata'}
+                      ? t('common.refreshing')
+                      : t('bookDetails.refreshMetadata')}
                   </Button>
                 </>
               )}
@@ -737,25 +741,25 @@ export const Bookshelf: FC<BookshelfProps> = ({
               <div className="flex flex-wrap items-center gap-2">
                 {activeAuthor && (
                   <FilterChip
-                    label={`Author: ${activeAuthor}`}
+                    label={`${t('bookDetails.author')}: ${activeAuthor}`}
                     onRemove={() => updateShelfParam('author', null)}
                   />
                 )}
                 {activeSeries && (
                   <FilterChip
-                    label={`Series: ${activeSeries}`}
+                    label={`${t('bookDetails.series')}: ${activeSeries}`}
                     onRemove={() => updateShelfParam('series', null)}
                   />
                 )}
                 {activeTag && (
                   <FilterChip
-                    label={`Tag: ${activeTag}`}
+                    label={`${t('bookDetails.tags')}: ${activeTag}`}
                     onRemove={() => updateShelfParam('tag', null)}
                   />
                 )}
                 {activeUntagged && (
                   <FilterChip
-                    label="Untagged books"
+                    label={t('bookshelf.untaggedBooks')}
                     onRemove={() => updateShelfParam('untagged', null)}
                   />
                 )}
@@ -764,7 +768,7 @@ export const Bookshelf: FC<BookshelfProps> = ({
                   onClick={clearFilters}
                   className="text-xs text-muted-foreground underline underline-offset-2"
                 >
-                  Clear filters
+                  {t('bookshelf.clearFilters')}
                 </button>
               </div>
             )}
@@ -783,10 +787,10 @@ export const Bookshelf: FC<BookshelfProps> = ({
             className="mb-4 h-10 w-10 text-muted-foreground"
           />
           <h1 className="text-xl font-semibold">
-            It&apos;s a little too quiet in here.
+            {t('bookshelf.quietHeading')}
           </h1>
           <p className="mt-2 max-w-md text-muted-foreground">
-            No books yet. Let&apos;s give these shelves something to read.
+            {t('bookshelf.noBooksYet')}
           </p>
           <Button asChild className="mt-6">
             <Link to="/">Add a Drive folder</Link>
@@ -805,8 +809,8 @@ export const Bookshelf: FC<BookshelfProps> = ({
           {!isLoading && filteredBooks.length === 0 && (
             <p className="py-12 text-center text-muted-foreground">
               {hasActiveFilters
-                ? 'No books match the current search and filters.'
-                : 'No EPUB books found in your library.'}
+                ? t('bookshelf.noBooksMatch')
+                : t('bookshelf.noBooksFound')}
             </p>
           )}
         </>
@@ -823,12 +827,12 @@ export const Bookshelf: FC<BookshelfProps> = ({
           )}
           {!isLoading && !hasActiveFilters && series.length === 0 && (
             <p className="py-12 text-center text-muted-foreground">
-              No EPUB books found in your library.
+              {t('bookshelf.noBooksFound')}
             </p>
           )}
           {!isLoading && hasActiveFilters && series.length === 0 && (
             <p className="py-12 text-center text-muted-foreground">
-              No books match the current search and filters.
+              {t('bookshelf.noBooksMatch')}
             </p>
           )}
         </>
@@ -852,7 +856,7 @@ function FilterChip({
     >
       <span className="truncate">{label}</span>
       <X aria-hidden="true" className="h-3 w-3 flex-none" />
-      <span className="sr-only">Remove filter</span>
+      <span className="sr-only">{t('common.removeFilter')}</span>
     </button>
   );
 }
@@ -876,9 +880,9 @@ function groupBooksByCategory(
   sortedBooks.forEach((book) => {
     const name =
       groupBy === 'author'
-        ? book.author || 'Unknown author'
+        ? book.author || t('common.unknownAuthor')
         : groupBy === 'tags'
-          ? book.tags?.[0] || 'Untagged'
+          ? book.tags?.[0] || t('common.untagged')
           : book.series || book.title;
     const group = groups.get(name) ?? [];
     group.push(book);

@@ -26,11 +26,13 @@
     "cmdk": "^1.1.1",
     "dompurify": "^3.2.7",
     "epubjs": "^0.3.93",
+    "i18next": "^27.0.1",
     "jszip": "^3.10.1",
     "localforage": "^1.10.0",
     "lucide-react": "^0.544.0",
     "react": "^19.1.1",
     "react-dom": "^19.1.1",
+    "react-i18next": "^18.0.0",
     "react-router-dom": "^7.9.1"
   },
   "devDependencies": {
