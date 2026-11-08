@@ -145,9 +145,9 @@ export const AppContent = () => {
   );
 
   return (
-    <div className="min-h-screen flex flex-col">
+    <div className="app-shell flex flex-col">
       <Navbar searchQuery={searchQuery} onSearchChange={setSearchQuery} />
-      <main className="flex-1 container-wrapper mx-auto max-w-7xl px-4 pb-28 md:pb-0">
+      <main className="app-main flex-1 container-wrapper mx-auto max-w-7xl px-4">
         <Suspense fallback={<div>Loading...</div>}>
           <Routes>
             <Route

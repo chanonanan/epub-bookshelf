@@ -181,7 +181,7 @@ export default function BookDetailsPage({
   }
 
   return (
-    <div>
+    <div className="book-details-page">
       <div className="max-w-4xl mx-auto">
         <PageHeader
           backLabel={
@@ -202,10 +202,10 @@ export default function BookDetailsPage({
             <LazyImage
               src={book.coverBlob}
               alt={`${book.title} cover`}
-              className="w-[70%] rounded-lg shadow-lg md:w-48"
+              className="book-details-cover w-full max-w-[16rem] rounded-xl md:w-48"
               imageClassName="aspect-[2/3] w-full object-cover"
             />
-            <div className="mt-4 flex w-full flex-col gap-2">
+            <div className="mt-5 flex w-full flex-col gap-2.5">
               <Button
                 onClick={handleDownload}
                 variant="default"
@@ -224,8 +224,8 @@ export default function BookDetailsPage({
               </Button>
             </div>
           </div>
-          <div className="flex-grow text-sm">
-            <table className="table-auto border-separate border-spacing-y-2">
+          <div className="book-details-copy flex-grow text-sm">
+            <table className="book-metadata table-auto border-separate border-spacing-y-2">
               <tbody>
                 {book.author && (
                   <tr>
@@ -279,10 +279,10 @@ export default function BookDetailsPage({
               </tbody>
             </table>
             {sanitizedDescription && (
-              <section className="prose mt-5 dark:prose-invert">
-                <h2 className="mb-2 text-base font-semibold">Description</h2>
+              <section className="prose mt-6 max-w-none dark:prose-invert">
+                <h2 className="mb-3 text-base font-semibold">Description</h2>
                 <div
-                  className="text-muted-foreground"
+                  className="book-description text-muted-foreground"
                   dangerouslySetInnerHTML={{ __html: sanitizedDescription }}
                 />
               </section>

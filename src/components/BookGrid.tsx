@@ -54,7 +54,7 @@ export const BookGrid = ({
         key={book.id}
         type="button"
         aria-pressed={selectionMode ? selectedIds.has(book.id) : undefined}
-        className={`group relative h-full w-full rounded-sm text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background ${
+        className={`book-grid-item group relative h-full w-full rounded-sm text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background ${
           viewMode === 'list'
             ? 'flex items-center gap-3 rounded-lg border bg-card p-2 transition hover:bg-gray-50 dark:hover:bg-gray-800'
             : ''
@@ -76,9 +76,9 @@ export const BookGrid = ({
         }}
       >
         {viewMode === 'grid' ? (
-          <Card className="h-full border bg-card p-2 shadow transition hover:bg-gray-50 hover:shadow-md dark:hover:bg-gray-800">
+          <Card className="book-grid-card h-full border bg-card p-2">
             <CardHeader className="p-0">
-              <div className="relative aspect-[2/3] w-full min-h-0 flex-none overflow-hidden rounded-sm bg-muted">
+              <div className="relative aspect-[2/3] w-full min-h-0 flex-none overflow-hidden rounded-md bg-muted">
                 <LazyImage
                   src={book.coverBlob}
                   alt=""
@@ -99,8 +99,8 @@ export const BookGrid = ({
                 )}
               </div>
             </CardHeader>
-            <CardContent className="px-0 py-2">
-              <CardTitle className="mb-px min-h-8 line-clamp-2 text-xs sm:min-h-10 sm:text-sm">
+            <CardContent className="px-0 pb-1 pt-2.5">
+              <CardTitle className="mb-1 min-h-8 line-clamp-2 text-xs leading-snug sm:min-h-10 sm:text-sm">
                 {book.title}
               </CardTitle>
               <CardDescription className="line-clamp-1 text-[11px]">

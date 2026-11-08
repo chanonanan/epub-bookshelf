@@ -20,7 +20,7 @@ export function PageHeader({
     backScrollY === undefined ? undefined : { restoreScrollY: backScrollY };
 
   return (
-    <header className="mb-6 py-4">
+    <header className="book-details-header mb-6 py-4">
       {iconOnlyBack && title ? (
         <div className="flex items-center gap-3">
           <Link
