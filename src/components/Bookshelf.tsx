@@ -6,6 +6,7 @@ import {
 import type { LibraryFolder } from '@/types/library';
 import {
   type FC,
+  type PointerEvent as ReactPointerEvent,
   useCallback,
   useEffect,
   useMemo,
@@ -17,6 +18,7 @@ import {
   CheckSquare,
   LayoutGrid,
   LayoutList,
+  Menu,
   RefreshCw,
   X,
 } from 'lucide-react';
@@ -93,7 +95,17 @@ export const Bookshelf: FC<BookshelfProps> = ({
   const [bulkActionError, setBulkActionError] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [announcedProgress, setAnnouncedProgress] = useState('');
+  const [isControlsOpen, setIsControlsOpen] = useState(false);
   const gridRef = useRef<HTMLDivElement>(null);
+  const controlsRef = useRef<HTMLElement>(null);
+  const drawerGestureRef = useRef<{
+    pointerId: number;
+    startY: number;
+    startedAt: number;
+  } | null>(null);
+  const drawerGestureMovedRef = useRef(false);
+  const controlsHeadingRef = useRef<HTMLHeadingElement>(null);
+  const controlsTriggerRef = useRef<HTMLButtonElement>(null);
   const loadIdRef = useRef(0);
   const lastAnnouncedProcessedRef = useRef(0);
   const previousGroupByRef = useRef<GroupBy>('series');
@@ -107,6 +119,119 @@ export const Bookshelf: FC<BookshelfProps> = ({
   const activeSeries = searchParams.get('series');
   const activeTag = searchParams.get('tag');
   const activeUntagged = searchParams.get('untagged') === '1';
+
+  const handleDrawerPointerDown = (
+    event: ReactPointerEvent<HTMLButtonElement>,
+  ) => {
+    if (!event.isPrimary || event.button !== 0) return;
+    event.preventDefault();
+    event.currentTarget.setPointerCapture(event.pointerId);
+    drawerGestureRef.current = {
+      pointerId: event.pointerId,
+      startY: event.clientY,
+      startedAt: performance.now(),
+    };
+    drawerGestureMovedRef.current = false;
+    controlsRef.current?.classList.add('is-dragging');
+  };
+
+  const handleDrawerPointerMove = (
+    event: ReactPointerEvent<HTMLButtonElement>,
+  ) => {
+    const gesture = drawerGestureRef.current;
+    if (!gesture || gesture.pointerId !== event.pointerId) return;
+    const offset = Math.max(0, event.clientY - gesture.startY);
+    if (offset > 8) drawerGestureMovedRef.current = true;
+    controlsRef.current?.style.setProperty('--drawer-drag-y', `${offset}px`);
+  };
+
+  const resetDrawerGesture = () => {
+    controlsRef.current?.style.removeProperty('--drawer-drag-y');
+    controlsRef.current?.classList.remove('is-dragging');
+    drawerGestureRef.current = null;
+  };
+
+  const handleDrawerPointerUp = (
+    event: ReactPointerEvent<HTMLButtonElement>,
+  ) => {
+    const gesture = drawerGestureRef.current;
+    if (!gesture || gesture.pointerId !== event.pointerId) return;
+    const offset = Math.max(0, event.clientY - gesture.startY);
+    const duration = performance.now() - gesture.startedAt;
+    const shouldClose =
+      offset > 72 || (offset > 28 && duration < 220 && offset / duration > 0.5);
+
+    resetDrawerGesture();
+    if (shouldClose) {
+      setIsControlsOpen(false);
+      controlsTriggerRef.current?.focus({ preventScroll: true });
+    }
+  };
+
+  const handleDrawerPointerCancel = (
+    event: ReactPointerEvent<HTMLButtonElement>,
+  ) => {
+    if (drawerGestureRef.current?.pointerId !== event.pointerId) return;
+    drawerGestureMovedRef.current = false;
+    resetDrawerGesture();
+  };
+
+  useEffect(() => {
+    if (!isControlsOpen) return;
+
+    const previousBodyOverflow = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    controlsHeadingRef.current?.focus({ preventScroll: true });
+
+    const handlePointerDown = (event: PointerEvent) => {
+      const target = event.target;
+      if (
+        target instanceof Node &&
+        !controlsRef.current?.contains(target) &&
+        !controlsTriggerRef.current?.contains(target)
+      ) {
+        setIsControlsOpen(false);
+      }
+    };
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        event.preventDefault();
+        setIsControlsOpen(false);
+        controlsTriggerRef.current?.focus({ preventScroll: true });
+        return;
+      }
+
+      if (event.key === 'Tab') {
+        const focusableElements =
+          controlsRef.current?.querySelectorAll<HTMLElement>(
+            'a[href], button:not([disabled]), select:not([disabled]), input:not([disabled]), [tabindex]:not([tabindex="-1"])',
+          );
+        if (!focusableElements?.length) return;
+
+        const firstElement = focusableElements[0];
+        const lastElement = focusableElements[focusableElements.length - 1];
+        if (
+          event.shiftKey &&
+          (document.activeElement === firstElement ||
+            document.activeElement === controlsHeadingRef.current)
+        ) {
+          event.preventDefault();
+          lastElement.focus();
+        } else if (!event.shiftKey && document.activeElement === lastElement) {
+          event.preventDefault();
+          firstElement.focus();
+        }
+      }
+    };
+
+    document.addEventListener('pointerdown', handlePointerDown);
+    document.addEventListener('keydown', handleKeyDown);
+    return () => {
+      document.body.style.overflow = previousBodyOverflow;
+      document.removeEventListener('pointerdown', handlePointerDown);
+      document.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [isControlsOpen]);
 
   const updateShelfParam = useCallback(
     (key: string, value: string | null, defaultValue?: string) => {
@@ -435,146 +560,221 @@ export const Bookshelf: FC<BookshelfProps> = ({
         </div>
       )}
       {!isEmptyLibrary && (
-        <section
-          aria-label="Shelf controls"
-          className="mb-5 space-y-3 rounded-xl border bg-card/70 p-3 shadow-sm sm:p-4"
-        >
-          <div className="flex flex-wrap items-center gap-2">
-            <label className="sr-only" htmlFor="shelf-group-by">
-              Group books by
-            </label>
-            <select
-              id="shelf-group-by"
-              value={groupBy}
-              disabled={selectionMode}
-              onChange={(event) => {
-                updateShelfParam('groupBy', event.target.value, 'series');
-                setSelectedIds(new Set());
-              }}
-              className="h-9 min-w-32 rounded-md border border-input bg-background px-3 text-sm"
-            >
-              <option value="series">Group: Series</option>
-              <option value="author">Group: Author</option>
-              <option value="tags">Group: Tag</option>
-              <option value="none">All books</option>
-            </select>
-            <label className="sr-only" htmlFor="shelf-sort-by">
-              Sort books by
-            </label>
-            <select
-              id="shelf-sort-by"
-              value={sortBy}
-              onChange={(event) =>
-                updateShelfParam('sortBy', event.target.value, 'title')
-              }
-              className="h-9 min-w-32 rounded-md border border-input bg-background px-3 text-sm"
-            >
-              <option value="title">Sort: Title</option>
-              <option value="author">Sort: Author</option>
-              <option value="series">Sort: Series</option>
-              <option value="publishDate">Sort: Published</option>
-            </select>
-            <div
-              role="group"
-              aria-label="Shelf layout"
-              className="flex rounded-md border bg-background p-0.5"
-            >
-              <button
-                type="button"
-                aria-label="Grid view"
-                aria-pressed={viewMode === 'grid'}
-                onClick={() => updateShelfParam('view', 'grid', 'grid')}
-                className={`flex h-8 w-9 items-center justify-center rounded ${
-                  viewMode === 'grid' ? 'bg-accent text-accent-foreground' : ''
-                }`}
-              >
-                <LayoutGrid aria-hidden="true" className="h-4 w-4" />
-              </button>
-              <button
-                type="button"
-                aria-label="List view"
-                aria-pressed={viewMode === 'list'}
-                onClick={() => updateShelfParam('view', 'list', 'grid')}
-                className={`flex h-8 w-9 items-center justify-center rounded ${
-                  viewMode === 'list' ? 'bg-accent text-accent-foreground' : ''
-                }`}
-              >
-                <LayoutList aria-hidden="true" className="h-4 w-4" />
-              </button>
-            </div>
-            <Button
-              type="button"
-              variant={selectionMode ? 'secondary' : 'outline'}
-              size="sm"
-              onClick={handleSelectionModeChange}
-            >
-              <CheckSquare aria-hidden="true" />
-              {selectionMode ? 'Done selecting' : 'Select books'}
-            </Button>
-            {selectionMode && (
-              <>
-                <span
-                  className="text-sm text-muted-foreground"
-                  aria-live="polite"
-                >
-                  {selectedBooks.length} selected
-                </span>
-                <Button
-                  type="button"
-                  size="sm"
-                  onClick={() => void handleBulkRefresh()}
-                  disabled={selectedBooks.length === 0 || isRefreshingSelected}
-                >
-                  <RefreshCw
-                    aria-hidden="true"
-                    className={isRefreshingSelected ? 'animate-spin' : ''}
-                  />
-                  {isRefreshingSelected ? 'Refreshing...' : 'Refresh metadata'}
-                </Button>
-              </>
+        <>
+          <button
+            ref={controlsTriggerRef}
+            type="button"
+            className="shelf-menu-trigger"
+            aria-label={
+              isControlsOpen ? 'Close bookshelf menu' : 'Open bookshelf menu'
+            }
+            aria-expanded={isControlsOpen}
+            aria-controls="shelf-controls-panel"
+            onClick={() => setIsControlsOpen((isOpen) => !isOpen)}
+          >
+            {isControlsOpen ? (
+              <X aria-hidden="true" />
+            ) : (
+              <Menu aria-hidden="true" />
             )}
-          </div>
-          {(activeAuthor || activeSeries || activeTag || activeUntagged) && (
-            <div className="flex flex-wrap items-center gap-2">
-              {activeAuthor && (
-                <FilterChip
-                  label={`Author: ${activeAuthor}`}
-                  onRemove={() => updateShelfParam('author', null)}
-                />
-              )}
-              {activeSeries && (
-                <FilterChip
-                  label={`Series: ${activeSeries}`}
-                  onRemove={() => updateShelfParam('series', null)}
-                />
-              )}
-              {activeTag && (
-                <FilterChip
-                  label={`Tag: ${activeTag}`}
-                  onRemove={() => updateShelfParam('tag', null)}
-                />
-              )}
-              {activeUntagged && (
-                <FilterChip
-                  label="Untagged books"
-                  onRemove={() => updateShelfParam('untagged', null)}
-                />
-              )}
+          </button>
+          <div
+            aria-hidden="true"
+            className={`shelf-drawer-backdrop ${isControlsOpen ? 'is-open' : ''}`}
+            onClick={() => setIsControlsOpen(false)}
+          />
+          <section
+            id="shelf-controls-panel"
+            ref={controlsRef}
+            role={isControlsOpen ? 'dialog' : undefined}
+            aria-modal={isControlsOpen ? true : undefined}
+            aria-labelledby="shelf-controls-title"
+            className={`shelf-controls shelf-controls-panel mb-5 space-y-3 rounded-xl border bg-card/70 p-3 shadow-sm sm:p-4 ${isControlsOpen ? 'is-open' : ''}`}
+          >
+            <header className="shelf-drawer-header">
               <button
                 type="button"
-                onClick={clearFilters}
-                className="text-xs text-muted-foreground underline underline-offset-2"
+                aria-label="Swipe down or tap to close shelf controls"
+                className="shelf-drawer-handle"
+                onPointerDown={handleDrawerPointerDown}
+                onPointerMove={handleDrawerPointerMove}
+                onPointerUp={handleDrawerPointerUp}
+                onPointerCancel={handleDrawerPointerCancel}
+                onClick={(event) => {
+                  if (drawerGestureMovedRef.current) {
+                    event.preventDefault();
+                    drawerGestureMovedRef.current = false;
+                    return;
+                  }
+                  setIsControlsOpen(false);
+                  controlsTriggerRef.current?.focus({ preventScroll: true });
+                }}
               >
-                Clear filters
+                <span aria-hidden="true" />
               </button>
+              <div>
+                <h2
+                  id="shelf-controls-title"
+                  ref={controlsHeadingRef}
+                  tabIndex={-1}
+                  className="text-lg font-semibold tracking-tight"
+                >
+                  Shelf controls
+                </h2>
+                <p className="mt-1 text-sm text-muted-foreground">
+                  Group, sort, and organize your books.
+                </p>
+              </div>
+            </header>
+            <div className="shelf-filter-selects">
+              <label className="sr-only" htmlFor="shelf-group-by">
+                Group books by
+              </label>
+              <select
+                id="shelf-group-by"
+                value={groupBy}
+                disabled={selectionMode}
+                onChange={(event) => {
+                  updateShelfParam('groupBy', event.target.value, 'series');
+                  setSelectedIds(new Set());
+                }}
+                className="shelf-filter-select h-10 min-w-32 rounded-md border border-input bg-background px-3 text-sm"
+              >
+                <option value="series">Group: Series</option>
+                <option value="author">Group: Author</option>
+                <option value="tags">Group: Tag</option>
+                <option value="none">All books</option>
+              </select>
+              <label className="sr-only" htmlFor="shelf-sort-by">
+                Sort books by
+              </label>
+              <select
+                id="shelf-sort-by"
+                value={sortBy}
+                onChange={(event) =>
+                  updateShelfParam('sortBy', event.target.value, 'title')
+                }
+                className="shelf-filter-select h-10 min-w-32 rounded-md border border-input bg-background px-3 text-sm"
+              >
+                <option value="title">Sort: Title</option>
+                <option value="author">Sort: Author</option>
+                <option value="series">Sort: Series</option>
+                <option value="publishDate">Sort: Published</option>
+              </select>
             </div>
-          )}
-          {bulkActionError && (
-            <p role="alert" className="text-sm text-destructive">
-              {bulkActionError}
-            </p>
-          )}
-        </section>
+            <div className="shelf-control-actions">
+              <div
+                role="group"
+                aria-label="Shelf layout"
+                className="shelf-layout-toggle flex rounded-md border bg-background p-0.5"
+              >
+                <button
+                  type="button"
+                  aria-label="Grid view"
+                  aria-pressed={viewMode === 'grid'}
+                  onClick={() => updateShelfParam('view', 'grid', 'grid')}
+                  className={`flex h-9 w-10 items-center justify-center rounded-md transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring ${
+                    viewMode === 'grid'
+                      ? 'bg-accent text-accent-foreground'
+                      : ''
+                  }`}
+                >
+                  <LayoutGrid aria-hidden="true" className="h-4 w-4" />
+                </button>
+                <button
+                  type="button"
+                  aria-label="List view"
+                  aria-pressed={viewMode === 'list'}
+                  onClick={() => updateShelfParam('view', 'list', 'grid')}
+                  className={`flex h-9 w-10 items-center justify-center rounded-md transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring ${
+                    viewMode === 'list'
+                      ? 'bg-accent text-accent-foreground'
+                      : ''
+                  }`}
+                >
+                  <LayoutList aria-hidden="true" className="h-4 w-4" />
+                </button>
+              </div>
+              <Button
+                type="button"
+                variant={selectionMode ? 'secondary' : 'outline'}
+                size="sm"
+                className="shelf-selection-button h-10 rounded-lg"
+                onClick={handleSelectionModeChange}
+              >
+                <CheckSquare aria-hidden="true" />
+                {selectionMode ? 'Done selecting' : 'Select books'}
+              </Button>
+              {selectionMode && (
+                <>
+                  <span
+                    className="text-sm text-muted-foreground"
+                    aria-live="polite"
+                  >
+                    {selectedBooks.length} selected
+                  </span>
+                  <Button
+                    type="button"
+                    size="sm"
+                    className="h-10 rounded-lg"
+                    onClick={() => void handleBulkRefresh()}
+                    disabled={
+                      selectedBooks.length === 0 || isRefreshingSelected
+                    }
+                  >
+                    <RefreshCw
+                      aria-hidden="true"
+                      className={isRefreshingSelected ? 'animate-spin' : ''}
+                    />
+                    {isRefreshingSelected
+                      ? 'Refreshing...'
+                      : 'Refresh metadata'}
+                  </Button>
+                </>
+              )}
+            </div>
+            {(activeAuthor || activeSeries || activeTag || activeUntagged) && (
+              <div className="flex flex-wrap items-center gap-2">
+                {activeAuthor && (
+                  <FilterChip
+                    label={`Author: ${activeAuthor}`}
+                    onRemove={() => updateShelfParam('author', null)}
+                  />
+                )}
+                {activeSeries && (
+                  <FilterChip
+                    label={`Series: ${activeSeries}`}
+                    onRemove={() => updateShelfParam('series', null)}
+                  />
+                )}
+                {activeTag && (
+                  <FilterChip
+                    label={`Tag: ${activeTag}`}
+                    onRemove={() => updateShelfParam('tag', null)}
+                  />
+                )}
+                {activeUntagged && (
+                  <FilterChip
+                    label="Untagged books"
+                    onRemove={() => updateShelfParam('untagged', null)}
+                  />
+                )}
+                <button
+                  type="button"
+                  onClick={clearFilters}
+                  className="text-xs text-muted-foreground underline underline-offset-2"
+                >
+                  Clear filters
+                </button>
+              </div>
+            )}
+            {bulkActionError && (
+              <p role="alert" className="text-sm text-destructive">
+                {bulkActionError}
+              </p>
+            )}
+          </section>
+        </>
       )}
       {isEmptyLibrary ? (
         <div className="flex min-h-[50vh] flex-col items-center justify-center px-4 text-center">
