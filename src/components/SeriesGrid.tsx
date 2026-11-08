@@ -34,10 +34,6 @@ export const SeriesGrid = ({
 }) => {
   const navigate = useNavigate();
   const location = useLocation();
-  const returnState = {
-    returnScrollY: window.scrollY,
-    returnGroupBy: groupBy,
-  };
 
   const renderItem = (index: number) => {
     if (index >= series.length) {
@@ -60,6 +56,11 @@ export const SeriesGrid = ({
             : ''
         }`}
         onClick={() => {
+          const returnState = {
+            returnScrollY: window.scrollY,
+            returnGroupBy: groupBy,
+            restoreScrollY: 0,
+          };
           if (group.filter) {
             const filterQuery =
               group.filter.key === 'untagged'

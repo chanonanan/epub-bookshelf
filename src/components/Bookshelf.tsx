@@ -124,7 +124,7 @@ export const Bookshelf: FC<BookshelfProps> = ({
           replace: true,
           state:
             !value && key !== 'groupBy' && restoreGroupBy
-              ? { returnScrollY: navigationState?.returnScrollY }
+              ? { restoreScrollY: navigationState?.returnScrollY }
               : location.state,
         },
       );
@@ -146,7 +146,7 @@ export const Bookshelf: FC<BookshelfProps> = ({
       {
         replace: true,
         state: restoreGroupBy
-          ? { returnScrollY: navigationState?.returnScrollY }
+          ? { restoreScrollY: navigationState?.returnScrollY }
           : location.state,
       },
     );
