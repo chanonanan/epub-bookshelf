@@ -7,21 +7,6 @@ type MobileNavigationStyle = CSSProperties & {
   '--mobile-dock-viewport-offset': string;
 };
 
-function getViewportOffset(navigation: HTMLElement): number {
-  if (getComputedStyle(navigation).display === 'none') return 0;
-
-  const visualViewport = window.visualViewport;
-  const visibleBottom = visualViewport
-    ? visualViewport.offsetTop + visualViewport.height
-    : window.innerHeight;
-  const currentBottom =
-    Number.parseFloat(getComputedStyle(navigation).bottom) || 0;
-  const fixedViewportBottom =
-    navigation.getBoundingClientRect().bottom + currentBottom;
-
-  return Math.max(0, visibleBottom - fixedViewportBottom);
-}
-
 interface MobileNavigationProps {
   searchQuery: string;
   onSearchChange: (query: string) => void;
@@ -66,6 +51,12 @@ export function MobileNavigation({
 
     const visualViewport = window.visualViewport;
     const updateVisibleBottom = () => {
+      if (!isSearchInputFocusedRef.current) {
+        navigation.classList.remove('is-keyboard-visible');
+        setViewportOffset(0);
+        return;
+      }
+
       const visibleBottom = visualViewport
         ? visualViewport.offsetTop + visualViewport.height
         : window.innerHeight;
@@ -75,11 +66,11 @@ export function MobileNavigation({
         navigation.getBoundingClientRect().bottom + currentBottom;
       const viewportOcclusion = Math.max(
         0,
-        visibleBottom - fixedViewportBottom,
+        fixedViewportBottom - visibleBottom,
       );
       navigation.classList.toggle(
         'is-keyboard-visible',
-        isSearchInputFocusedRef.current && viewportOcclusion > 100,
+        viewportOcclusion > 100,
       );
 
       setViewportOffset(viewportOcclusion);
@@ -143,12 +134,8 @@ export function MobileNavigation({
     const navigation = navigationRef.current;
     if (!navigation) return;
 
-    const viewportOcclusion = getViewportOffset(navigation);
-    navigation.classList.toggle(
-      'is-keyboard-visible',
-      viewportOcclusion > 100,
-    );
-    setViewportOffset(viewportOcclusion);
+    navigation.classList.remove('is-keyboard-visible');
+    setViewportOffset(0);
   };
 
   return (
