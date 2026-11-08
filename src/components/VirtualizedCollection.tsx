@@ -31,7 +31,7 @@ export function VirtualizedCollection({
   const itemWidth = isGrid
     ? columnWidth - (GRID_GAP * (columnCount - 1)) / columnCount
     : width;
-  const rowHeight = isGrid ? Math.ceil(itemWidth * 1.5 + 96) : 112;
+  const rowHeight = isGrid ? Math.ceil(itemWidth * 1.5 + 76) : 112;
   const rowCount = Math.ceil(itemCount / columnCount);
   const virtualizer = useWindowVirtualizer({
     count: rowCount,

@@ -134,7 +134,7 @@ export const SeriesGrid = ({
               </div>
             </CardHeader>
             <CardContent className="px-0 py-2">
-              <CardTitle className="line-clamp-2 text-xs sm:text-sm">
+              <CardTitle className="min-h-8 line-clamp-2 text-xs sm:min-h-10 sm:text-sm">
                 {group.name}
               </CardTitle>
               <CardDescription className="line-clamp-1 text-[11px]">
