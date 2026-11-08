@@ -13,12 +13,10 @@ import {
   useState,
 } from 'react';
 import {
-  AlertCircle,
   BookOpen,
   CheckSquare,
   LayoutGrid,
   LayoutList,
-  LoaderCircle,
   RefreshCw,
   X,
 } from 'lucide-react';
@@ -575,13 +573,8 @@ export const Bookshelf: FC<BookshelfProps> = ({
             selectionMode={selectionMode}
             selectedIds={selectedIds}
             onToggleSelection={toggleSelection}
+            pendingBooks={hasActiveFilters ? [] : [...pendingBooks.values()]}
           />
-          {!searchQuery && pendingBooks.size > 0 && (
-            <PendingBooksGrid
-              books={[...pendingBooks.values()]}
-              viewMode={viewMode}
-            />
-          )}
           {!isLoading && filteredBooks.length === 0 && (
             <p className="py-12 text-center text-muted-foreground">
               {hasActiveFilters
@@ -592,13 +585,12 @@ export const Bookshelf: FC<BookshelfProps> = ({
         </>
       ) : (
         <>
-          {series.length > 0 && (
-            <SeriesGrid series={series} viewMode={viewMode} />
-          )}
-          {!searchQuery && pendingBooks.size > 0 && (
-            <PendingBooksGrid
-              books={[...pendingBooks.values()]}
+          {(series.length > 0 ||
+            (!hasActiveFilters && pendingBooks.size > 0)) && (
+            <SeriesGrid
+              series={series}
               viewMode={viewMode}
+              pendingBooks={hasActiveFilters ? [] : [...pendingBooks.values()]}
             />
           )}
           {!isLoading && !hasActiveFilters && series.length === 0 && (
@@ -616,65 +608,6 @@ export const Bookshelf: FC<BookshelfProps> = ({
     </div>
   );
 };
-
-function PendingBooksGrid({
-  books,
-  viewMode,
-}: {
-  books: PendingBook[];
-  viewMode: ViewMode;
-}) {
-  return (
-    <div
-      aria-label="Books being processed"
-      className={
-        viewMode === 'grid'
-          ? 'mt-4 grid grid-cols-[repeat(auto-fill,minmax(120px,1fr))] gap-3 sm:gap-4'
-          : 'mt-4 flex flex-col gap-2'
-      }
-    >
-      {books.map((book) => (
-        <div
-          key={book.id}
-          aria-label={`${book.failed ? 'Could not load' : 'Loading'} ${book.name}`}
-          className={
-            viewMode === 'grid'
-              ? 'min-w-0'
-              : 'flex items-center gap-3 rounded-lg border bg-card p-2'
-          }
-        >
-          <div
-            className={
-              viewMode === 'grid'
-                ? 'relative aspect-[2/3] overflow-hidden rounded-sm bg-muted'
-                : 'relative h-20 w-14 flex-none overflow-hidden rounded bg-muted'
-            }
-          >
-            <div className="absolute inset-0 animate-pulse bg-gradient-to-br from-muted via-muted/60 to-muted" />
-            {book.failed ? (
-              <AlertCircle
-                aria-hidden="true"
-                className="absolute left-1/2 top-1/2 h-6 w-6 -translate-x-1/2 -translate-y-1/2 text-destructive"
-              />
-            ) : (
-              <LoaderCircle
-                aria-hidden="true"
-                className="absolute left-1/2 top-1/2 h-6 w-6 -translate-x-1/2 -translate-y-1/2 animate-spin text-muted-foreground"
-              />
-            )}
-          </div>
-          <p
-            className={`line-clamp-2 text-xs text-muted-foreground sm:text-sm ${
-              viewMode === 'grid' ? 'mt-2' : 'min-w-0'
-            }`}
-          >
-            {book.name.replace(/\.epub$/i, '')}
-          </p>
-        </div>
-      ))}
-    </div>
-  );
-}
 
 function FilterChip({
   label,

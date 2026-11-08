@@ -9,6 +9,7 @@ A React web app that lets you browse and read EPUB books from your Google Drive.
 - Display book covers and titles in a grid layout
 - Search, sort, filter, and group books by series, author, or tag
 - Switch between grid and list layouts, and refresh metadata for selected books
+- Virtualized rendering for large shelves
 - Built-in EPUB reader (epub.js)
 - Local caching of book metadata and covers
 - Installable PWA with an offline-cached app shell
