@@ -95,6 +95,14 @@ export const getTokens = (): Promise<GoogleTokens | null> => {
   return tokenPromise;
 };
 
+export const disconnectGoogleAccount = async (): Promise<void> => {
+  currentTokens = null;
+  tokenPromise = null;
+  resolveTokenRequest?.(null);
+  resolveTokenRequest = null;
+  await localforage.removeItem('google_tokens');
+};
+
 const foldersCache = localforage.createInstance({
   name: 'epubBookshelf',
   storeName: 'folders',

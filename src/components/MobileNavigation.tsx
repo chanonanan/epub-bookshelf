@@ -1,6 +1,25 @@
 import { House, LibraryBig, Search, Settings, X } from 'lucide-react';
-import { useEffect, useRef, useState } from 'react';
+import { type CSSProperties, useEffect, useRef, useState } from 'react';
 import { NavLink, useLocation, useNavigate } from 'react-router-dom';
+
+type MobileNavigationStyle = CSSProperties & {
+  '--mobile-dock-viewport-offset': string;
+};
+
+function getViewportOffset(navigation: HTMLElement): number {
+  if (getComputedStyle(navigation).display === 'none') return 0;
+
+  const visualViewport = window.visualViewport;
+  const visibleBottom = visualViewport
+    ? visualViewport.offsetTop + visualViewport.height
+    : window.innerHeight;
+  const currentBottom =
+    Number.parseFloat(getComputedStyle(navigation).bottom) || 0;
+  const fixedViewportBottom =
+    navigation.getBoundingClientRect().bottom + currentBottom;
+
+  return Math.max(0, visibleBottom - fixedViewportBottom);
+}
 
 interface MobileNavigationProps {
   searchQuery: string;
@@ -15,6 +34,7 @@ export function MobileNavigation({
   const { pathname } = location;
   const navigate = useNavigate();
   const [isSearchOpen, setIsSearchOpen] = useState(false);
+  const [viewportOffset, setViewportOffset] = useState(0);
   const navigationRef = useRef<HTMLElement>(null);
   const searchInputRef = useRef<HTMLInputElement>(null);
   const searchTriggerRef = useRef<HTMLButtonElement>(null);
@@ -39,36 +59,31 @@ export function MobileNavigation({
   }, [isSearchOpen]);
 
   useEffect(() => {
-    if (!isSearchOpen) return;
-
     const navigation = navigationRef.current;
     if (!navigation) return;
 
     const visualViewport = window.visualViewport;
-    let animationFrame = 0;
     const updateVisibleBottom = () => {
-      cancelAnimationFrame(animationFrame);
-      animationFrame = requestAnimationFrame(() => {
-        const layoutHeight =
-          document.documentElement.clientHeight || window.innerHeight;
-        if (!isSearchInputFocusedRef.current) return;
+      const visibleBottom = visualViewport
+        ? visualViewport.offsetTop + visualViewport.height
+        : window.innerHeight;
+      const currentBottom =
+        Number.parseFloat(getComputedStyle(navigation).bottom) || 0;
+      const fixedViewportBottom =
+        navigation.getBoundingClientRect().bottom + currentBottom;
+      const viewportOcclusion = Math.max(
+        0,
+        visibleBottom - fixedViewportBottom,
+      );
+      navigation.classList.toggle(
+        'is-keyboard-visible',
+        isSearchInputFocusedRef.current && viewportOcclusion > 100,
+      );
 
-        const visibleBottom = visualViewport
-          ? visualViewport.offsetTop + visualViewport.height
-          : layoutHeight;
-        const viewportOcclusion = Math.max(0, layoutHeight - visibleBottom);
-        navigation.classList.toggle(
-          'is-keyboard-visible',
-          viewportOcclusion > 100,
-        );
-
-        navigation.style.setProperty(
-          '--mobile-dock-viewport-offset',
-          `${viewportOcclusion}px`,
-        );
-      });
+      setViewportOffset(viewportOcclusion);
     };
 
+    const initialMeasurement = window.setTimeout(updateVisibleBottom, 100);
     updateVisibleBottom();
     visualViewport?.addEventListener('resize', updateVisibleBottom);
     visualViewport?.addEventListener('scroll', updateVisibleBottom);
@@ -76,15 +91,14 @@ export function MobileNavigation({
     window.addEventListener('orientationchange', updateVisibleBottom);
 
     return () => {
-      cancelAnimationFrame(animationFrame);
       visualViewport?.removeEventListener('resize', updateVisibleBottom);
       visualViewport?.removeEventListener('scroll', updateVisibleBottom);
       window.removeEventListener('resize', updateVisibleBottom);
       window.removeEventListener('orientationchange', updateVisibleBottom);
+      window.clearTimeout(initialMeasurement);
       navigation.classList.remove('is-keyboard-visible');
-      navigation.style.removeProperty('--mobile-dock-viewport-offset');
     };
-  }, [isSearchOpen]);
+  }, []);
 
   useEffect(() => {
     if (!isSearchOpen) return;
@@ -127,8 +141,12 @@ export function MobileNavigation({
     const navigation = navigationRef.current;
     if (!navigation) return;
 
-    navigation.classList.add('is-keyboard-visible');
-    navigation.style.setProperty('--mobile-dock-viewport-offset', '0px');
+    const viewportOcclusion = getViewportOffset(navigation);
+    navigation.classList.toggle(
+      'is-keyboard-visible',
+      viewportOcclusion > 100,
+    );
+    setViewportOffset(viewportOcclusion);
   };
 
   return (
@@ -136,6 +154,11 @@ export function MobileNavigation({
       ref={navigationRef}
       aria-label="Mobile navigation"
       className={`mobile-dock ${isSearchOpen ? 'is-search-open' : ''}`}
+      style={
+        {
+          '--mobile-dock-viewport-offset': `${viewportOffset}px`,
+        } as MobileNavigationStyle
+      }
     >
       <div
         aria-hidden={isSearchOpen}

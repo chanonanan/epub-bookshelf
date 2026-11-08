@@ -159,7 +159,13 @@
   position: fixed;
   z-index: 50;
   right: max(1rem, env(safe-area-inset-right, 0px));
-  bottom: calc(env(safe-area-inset-bottom, 0px) + 0.75rem);
+  bottom: calc(
+    max(
+        env(safe-area-inset-bottom, 0px),
+        var(--mobile-dock-viewport-offset, 0px)
+      ) +
+      0.75rem
+  );
   left: max(1rem, env(safe-area-inset-left, 0px));
   width: auto;
   max-width: 26rem;
