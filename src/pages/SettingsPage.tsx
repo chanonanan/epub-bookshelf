@@ -487,10 +487,11 @@ export default function SettingsPage() {
       >
         <Button
           variant="outline"
+          className="whitespace-normal"
           onClick={() => void handleServiceWorkerUpdate()}
         >
           <RefreshCw aria-hidden="true" />
-          Check for Service Worker Updates & Hard Refresh
+          Service Worker Update & Refresh
         </Button>
         <Toggle
           label="Enable Diagnostic Network Logs in UI"
