@@ -1,6 +1,6 @@
 import type { BookMetadata } from '@/epubUtils';
 import { BookOpenCheck } from 'lucide-react';
-import { useNavigate } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 import {
   Card,
   CardContent,
@@ -19,16 +19,25 @@ export interface SeriesGroup {
   filter?: { key: 'author' | 'tag' | 'untagged'; value: string };
 }
 
+type GroupBy = 'series' | 'author' | 'tags' | 'none';
+
 export const SeriesGrid = ({
   series,
   viewMode = 'grid',
+  groupBy = 'series',
   pendingBooks = [],
 }: {
   series: SeriesGroup[];
   viewMode?: 'grid' | 'list';
+  groupBy?: GroupBy;
   pendingBooks?: PendingBook[];
 }) => {
   const navigate = useNavigate();
+  const location = useLocation();
+  const returnState = {
+    returnScrollY: window.scrollY,
+    returnGroupBy: groupBy,
+  };
 
   const renderItem = (index: number) => {
     if (index >= series.length) {
@@ -57,14 +66,14 @@ export const SeriesGrid = ({
                 ? 'untagged=1&groupBy=none'
                 : `${group.filter.key}=${encodeURIComponent(group.filter.value)}&groupBy=none`;
             navigate(`/bookshelf?${filterQuery}`, {
-              state: { returnScrollY: window.scrollY },
+              state: returnState,
             });
             return;
           }
           if (group.books[0]?.series) {
             navigate(
               `/bookshelf?series=${encodeURIComponent(group.books[0].series)}&groupBy=none`,
-              { state: { returnScrollY: window.scrollY } },
+              { state: returnState },
             );
             return;
           }
@@ -79,7 +88,10 @@ export const SeriesGrid = ({
             return;
           }
           navigate(`/series/${encodeURIComponent(group.name)}`, {
-            state: { returnScrollY: window.scrollY },
+            state: {
+              ...returnState,
+              returnTo: `${location.pathname}${location.search}`,
+            },
           });
         }}
       >

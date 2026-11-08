@@ -20,7 +20,7 @@ import {
   RefreshCw,
   X,
 } from 'lucide-react';
-import { Link, useSearchParams } from 'react-router-dom';
+import { Link, useLocation, useSearchParams } from 'react-router-dom';
 import { BookGrid } from './BookGrid';
 import { SeriesGrid, type SeriesGroup } from './SeriesGrid';
 import { Button } from './ui/button';
@@ -47,6 +47,11 @@ type GroupBy = 'series' | 'author' | 'tags' | 'none';
 type SortBy = 'title' | 'author' | 'series' | 'publishDate';
 type ViewMode = 'grid' | 'list';
 
+interface ShelfNavigationState {
+  returnGroupBy?: GroupBy;
+  returnScrollY?: number;
+}
+
 const isGroupBy = (value: string | null): value is GroupBy =>
   value === 'series' ||
   value === 'author' ||
@@ -64,6 +69,11 @@ export const Bookshelf: FC<BookshelfProps> = ({
   searchQuery = '',
 }) => {
   const [searchParams, setSearchParams] = useSearchParams();
+  const location = useLocation();
+  const navigationState = location.state as ShelfNavigationState | null;
+  const restoreGroupBy = isGroupBy(navigationState?.returnGroupBy ?? null)
+    ? navigationState?.returnGroupBy
+    : undefined;
   const cacheKey = getBookshelfCacheKey(folders);
   const [books, setBooks] = useState<BookMetadata[]>(
     () => bookshelfBooksCache.get(cacheKey) ?? [],
@@ -105,13 +115,42 @@ export const Bookshelf: FC<BookshelfProps> = ({
           const next = new URLSearchParams(current);
           if (!value || value === defaultValue) next.delete(key);
           else next.set(key, value);
+          if (!value && key !== 'groupBy' && restoreGroupBy) {
+            next.set('groupBy', restoreGroupBy);
+          }
           return next;
         },
-        { replace: true },
+        {
+          replace: true,
+          state:
+            !value && key !== 'groupBy' && restoreGroupBy
+              ? { returnScrollY: navigationState?.returnScrollY }
+              : location.state,
+        },
       );
     },
-    [setSearchParams],
+    [location.state, navigationState, restoreGroupBy, setSearchParams],
   );
+
+  const clearFilters = () => {
+    setSearchParams(
+      (current) => {
+        const next = new URLSearchParams(current);
+        next.delete('author');
+        next.delete('series');
+        next.delete('tag');
+        next.delete('untagged');
+        if (restoreGroupBy) next.set('groupBy', restoreGroupBy);
+        return next;
+      },
+      {
+        replace: true,
+        state: restoreGroupBy
+          ? { returnScrollY: navigationState?.returnScrollY }
+          : location.state,
+      },
+    );
+  };
 
   const filteredBooks = useMemo(() => {
     const visibleBooks = loadedCacheKey === cacheKey || loading ? books : [];
@@ -523,19 +562,7 @@ export const Bookshelf: FC<BookshelfProps> = ({
               )}
               <button
                 type="button"
-                onClick={() => {
-                  setSearchParams(
-                    (current) => {
-                      const next = new URLSearchParams(current);
-                      next.delete('author');
-                      next.delete('series');
-                      next.delete('tag');
-                      next.delete('untagged');
-                      return next;
-                    },
-                    { replace: true },
-                  );
-                }}
+                onClick={clearFilters}
                 className="text-xs text-muted-foreground underline underline-offset-2"
               >
                 Clear filters
@@ -590,6 +617,7 @@ export const Bookshelf: FC<BookshelfProps> = ({
             <SeriesGrid
               series={series}
               viewMode={viewMode}
+              groupBy={groupBy}
               pendingBooks={hasActiveFilters ? [] : [...pendingBooks.values()]}
             />
           )}
