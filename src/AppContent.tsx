@@ -16,12 +16,14 @@ import {
   useParams,
 } from 'react-router-dom';
 import { Navbar } from './components/Navbar';
+import { MobileNavigation } from './components/MobileNavigation';
 import type { LibraryFolder } from './types/library';
 
 const HomePage = lazy(() => import('./pages/HomePage'));
 const BookshelfPage = lazy(() => import('./pages/BookshelfPage'));
 const SeriesPage = lazy(() => import('./pages/SeriesPage'));
 const BookDetailsPage = lazy(() => import('./pages/BookDetailsPage'));
+const SettingsPage = lazy(() => import('./pages/SettingsPage'));
 
 export const AppContent = () => {
   const location = useLocation();
@@ -145,8 +147,8 @@ export const AppContent = () => {
 
   return (
     <div className="min-h-screen flex flex-col">
-      <Navbar onSearchChange={setSearchQuery} />
-      <main className="flex-1 container-wrapper mx-auto max-w-7xl px-4">
+      <Navbar searchQuery={searchQuery} onSearchChange={setSearchQuery} />
+      <main className="flex-1 container-wrapper mx-auto max-w-7xl px-4 pb-28 md:pb-0">
         <Suspense fallback={<div>Loading...</div>}>
           <Routes>
             <Route
@@ -184,6 +186,7 @@ export const AppContent = () => {
               path="/book/:id"
               element={<BookDetailsPage folders={libraryFolders} />}
             />
+            <Route path="/settings" element={<SettingsPage />} />
             <Route
               path="/bookshelf/:legacyPath"
               element={<LegacyBookshelfRedirect />}
@@ -199,6 +202,10 @@ export const AppContent = () => {
           </Routes>
         </Suspense>
       </main>
+      <MobileNavigation
+        searchQuery={searchQuery}
+        onSearchChange={setSearchQuery}
+      />
     </div>
   );
 };
