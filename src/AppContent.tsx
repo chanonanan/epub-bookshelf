@@ -4,10 +4,17 @@ import {
   lazy,
   useCallback,
   useEffect,
+  useLayoutEffect,
   useRef,
   useState,
 } from 'react';
-import { Navigate, Route, Routes, useParams } from 'react-router-dom';
+import {
+  Navigate,
+  Route,
+  Routes,
+  useLocation,
+  useParams,
+} from 'react-router-dom';
 import { Navbar } from './components/Navbar';
 import type { LibraryFolder } from './types/library';
 
@@ -17,10 +24,43 @@ const SeriesPage = lazy(() => import('./pages/SeriesPage'));
 const BookDetailsPage = lazy(() => import('./pages/BookDetailsPage'));
 
 export const AppContent = () => {
+  const location = useLocation();
+  const previousPathRef = useRef(location.pathname);
+  const scrollPositionsRef = useRef(new Map<string, number>());
   const [libraryFolders, setLibraryFolders] = useState<LibraryFolder[]>([]);
   const libraryFoldersRef = useRef(libraryFolders);
   const [searchQuery, setSearchQuery] = useState('');
   const [isLoadingFolders, setIsLoadingFolders] = useState(true);
+
+  useEffect(() => {
+    const previousScrollRestoration = window.history.scrollRestoration;
+    window.history.scrollRestoration = 'manual';
+    const saveScrollPosition = () => {
+      scrollPositionsRef.current.set(previousPathRef.current, window.scrollY);
+    };
+    window.addEventListener('scroll', saveScrollPosition, { passive: true });
+    document.addEventListener('click', saveScrollPosition, true);
+    return () => {
+      window.removeEventListener('scroll', saveScrollPosition);
+      document.removeEventListener('click', saveScrollPosition, true);
+      window.history.scrollRestoration = previousScrollRestoration;
+    };
+  }, []);
+
+  useLayoutEffect(() => {
+    previousPathRef.current = location.pathname;
+
+    const locationState = location.state as { restoreScrollY?: number } | null;
+    const scrollY =
+      locationState?.restoreScrollY ??
+      scrollPositionsRef.current.get(location.pathname) ??
+      0;
+    const timer = window.setTimeout(() => {
+      window.scrollTo({ top: scrollY, behavior: 'auto' });
+    }, 100);
+
+    return () => window.clearTimeout(timer);
+  }, [location.pathname, location.state]);
 
   useEffect(() => {
     const loadFolders = async () => {

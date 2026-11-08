@@ -30,11 +30,14 @@ export const SeriesGrid = ({ series }: { series: SeriesGroup[] }) => {
                 state: {
                   seriesBookCount: group.books.length,
                   seriesName: group.books[0].series,
+                  returnScrollY: window.scrollY,
                 },
               });
               return;
             }
-            navigate(`/series/${encodeURIComponent(group.name)}`);
+            navigate(`/series/${encodeURIComponent(group.name)}`, {
+              state: { returnScrollY: window.scrollY },
+            });
           }}
         >
           <Card className="h-full cursor-pointer border-0 bg-transparent shadow-none transition-colors hover:bg-transparent">

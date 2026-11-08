@@ -31,6 +31,7 @@ export const BookGrid = ({ books }: { books: BookMetadata[] }) => {
               state: {
                 seriesBookCount: books.length,
                 seriesName: series ? decodeURIComponent(series) : book.series,
+                returnScrollY: window.scrollY,
               },
             })
           }

@@ -20,7 +20,10 @@ export default function BookDetailsPage({
 }) {
   const { id } = useParams<{ id: string }>();
   const location = useLocation();
-  const navigationState = location.state as { seriesBookCount?: number } | null;
+  const navigationState = location.state as {
+    returnScrollY?: number;
+    seriesBookCount?: number;
+  } | null;
   const [book, setBook] = useState<BookMetadata | null>(null);
   const [seriesBookCount, setSeriesBookCount] = useState(
     navigationState?.seriesBookCount,
@@ -185,6 +188,7 @@ export default function BookDetailsPage({
               ? `/series/${encodeURIComponent(book.series)}`
               : '/bookshelf'
           }
+          backScrollY={navigationState?.returnScrollY}
           title={book.title}
           iconOnlyBack
         />
