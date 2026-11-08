@@ -1,9 +1,10 @@
 import { PageHeader } from '@/components/PageHeader';
 import { LazyImage } from '@/components/ui/lazy-image';
+import { Badge } from '@/components/ui/badge';
 import type { LibraryFolder } from '@/types/library';
 import DOMPurify from 'dompurify';
 import { useEffect, useMemo, useState } from 'react';
-import { useLocation, useParams } from 'react-router-dom';
+import { Link, useLocation, useParams } from 'react-router-dom';
 import { Button } from '../components/ui/button';
 import {
   type BookMetadata,
@@ -15,13 +16,16 @@ import { downloadFile } from '../googleDrive';
 
 export default function BookDetailsPage({
   folders,
+  onSearchChange,
 }: {
   folders: LibraryFolder[];
+  onSearchChange: (query: string) => void;
 }) {
   const { id } = useParams<{ id: string }>();
   const location = useLocation();
   const navigationState = location.state as {
     returnScrollY?: number;
+    returnTo?: string;
     seriesBookCount?: number;
   } | null;
   const [book, setBook] = useState<BookMetadata | null>(null);
@@ -184,22 +188,24 @@ export default function BookDetailsPage({
             book.series && seriesBookCount !== 1 ? book.series : 'Bookshelf'
           }
           backTo={
-            book.series && seriesBookCount !== 1
+            navigationState?.returnTo ??
+            (book.series && seriesBookCount !== 1
               ? `/series/${encodeURIComponent(book.series)}`
-              : '/bookshelf'
+              : '/bookshelf')
           }
           backScrollY={navigationState?.returnScrollY}
           title={book.title}
           iconOnlyBack
         />
-        <div className="flex flex-col md:flex-row gap-8">
-          <div className="flex-shrink-0 w-full md:w-64">
+        <div className="flex flex-col gap-8 md:flex-row">
+          <div className="mx-0 flex w-full flex-shrink-0 flex-col items-center md:w-64">
             <LazyImage
               src={book.coverBlob}
               alt={`${book.title} cover`}
-              className="w-full aspect-[2/3] object-cover rounded-lg shadow-lg"
+              className="w-[70%] rounded-lg shadow-lg md:w-48"
+              imageClassName="aspect-[2/3] w-full object-cover"
             />
-            <div className="flex flex-col gap-2 mt-4">
+            <div className="mt-4 flex w-full flex-col gap-2">
               <Button
                 onClick={handleDownload}
                 variant="default"
@@ -218,69 +224,85 @@ export default function BookDetailsPage({
               </Button>
             </div>
           </div>
-          <div className="flex-grow">
-            {book.series && (
-              <p className="text-lg text-muted-foreground mb-4">
-                Series: {book.series}
-                {book.seriesIndex && <> #{book.seriesIndex}</>}
-              </p>
-            )}
-            <p className="text-xl mb-6">{book.author}</p>
+          <div className="flex-grow text-sm">
+            <table className="table-auto border-separate border-spacing-y-2">
+              <tbody>
+                {book.author && (
+                  <tr>
+                    <th scope="row" className="pr-4 text-left align-top">
+                      Author:
+                    </th>
+                    <td>
+                      <Link
+                        onClick={() => onSearchChange('')}
+                        className="underline underline-offset-2"
+                        to={`/bookshelf?author=${encodeURIComponent(book.author)}&groupBy=none`}
+                      >
+                        {book.author}
+                      </Link>
+                    </td>
+                  </tr>
+                )}
+                {book.series && (
+                  <tr>
+                    <th scope="row" className="pr-4 text-left align-top">
+                      Series:
+                    </th>
+                    <td>
+                      <Link
+                        onClick={() => onSearchChange('')}
+                        className="underline underline-offset-2"
+                        to={`/bookshelf?series=${encodeURIComponent(book.series)}&groupBy=none`}
+                      >
+                        {book.series}
+                      </Link>
+                      {book.seriesIndex && <> #{book.seriesIndex}</>}
+                    </td>
+                  </tr>
+                )}
+                {[
+                  ['Language', book.language],
+                  ['Publisher', book.publisher],
+                  ['Published', book.publishDate],
+                  ['File size', book.fileSize],
+                ].map(
+                  ([label, value]) =>
+                    value && (
+                      <tr key={label}>
+                        <th scope="row" className="pr-4 text-left align-top">
+                          {label}:
+                        </th>
+                        <td>{value}</td>
+                      </tr>
+                    ),
+                )}
+              </tbody>
+            </table>
             {sanitizedDescription && (
-              <div className="prose dark:prose-invert mb-6">
-                <h2 className="text-xl font-semibold mb-2">Description</h2>
+              <section className="prose mt-5 dark:prose-invert">
+                <h2 className="mb-2 text-base font-semibold">Description</h2>
                 <div
                   className="text-muted-foreground"
                   dangerouslySetInnerHTML={{ __html: sanitizedDescription }}
                 />
-              </div>
+              </section>
             )}
-            <div className="grid grid-cols-2 gap-4">
-              {book.publisher && (
-                <div>
-                  <h3 className="font-semibold">Publisher</h3>
-                  <p>{book.publisher}</p>
-                </div>
-              )}
-              {book.publishDate && (
-                <div>
-                  <h3 className="font-semibold">Published</h3>
-                  <p>
-                    {new Date(book.publishDate).toLocaleDateString(undefined, {
-                      year: 'numeric',
-                      month: 'long',
-                      day: 'numeric',
-                    })}
-                  </p>
-                </div>
-              )}
-              {book.language && (
-                <div>
-                  <h3 className="font-semibold">Language</h3>
-                  <p>{book.language}</p>
-                </div>
-              )}
-              {book.fileSize && (
-                <div>
-                  <h3 className="font-semibold">File Size</h3>
-                  <p>{book.fileSize}</p>
-                </div>
-              )}
-            </div>
             {book.tags && book.tags.length > 0 && (
-              <div className="mt-6">
-                <h2 className="text-xl font-semibold mb-2">Tags</h2>
+              <section className="mt-5">
+                <h2 className="mb-2 font-semibold">Tags</h2>
                 <div className="flex flex-wrap gap-2">
                   {book.tags.map((tag) => (
-                    <span
-                      key={tag}
-                      className="px-2 py-1 rounded-full bg-primary/10 text-sm"
-                    >
-                      {tag}
-                    </span>
+                    <Badge key={tag} variant="outline">
+                      <Link
+                        to={`/bookshelf?tag=${encodeURIComponent(tag)}&groupBy=none`}
+                        onClick={() => onSearchChange('')}
+                      >
+                        {tag}
+                      </Link>
+                    </Badge>
                   ))}
                 </div>
-              </div>
+              </section>
             )}
           </div>
         </div>

@@ -184,7 +184,12 @@ export const AppContent = () => {
             />
             <Route
               path="/book/:id"
-              element={<BookDetailsPage folders={libraryFolders} />}
+              element={
+                <BookDetailsPage
+                  folders={libraryFolders}
+                  onSearchChange={setSearchQuery}
+                />
+              }
             />
             <Route path="/settings" element={<SettingsPage />} />
             <Route

@@ -12,7 +12,7 @@ export default function SeriesPage({ folders, searchQuery }: SeriesPageProps) {
   const { series } = useParams<{ series: string }>();
   const location = useLocation();
   const routeState = location.state as { returnScrollY?: number } | null;
-  const selectedSeries = series ? decodeURIComponent(series) : null;
+  const selectedSeries = series ?? null;
 
   return (
     <div className="mx-auto">

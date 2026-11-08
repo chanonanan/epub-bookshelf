@@ -26,6 +26,9 @@ export interface BooksFolderProgress {
   book?: BookMetadata;
   bookOrder?: number;
   books?: BookMetadata[];
+  discoveredFile?: DriveFile;
+  processedFileId?: string;
+  failedFileId?: string;
   discoveredCount: number;
   processedCount: number;
   complete: boolean;
@@ -647,6 +650,9 @@ const loadBooksInFolder = async (
     book?: BookMetadata,
     bookOrder?: number,
     complete = false,
+    discoveredFile?: DriveFile,
+    processedFileId?: string,
+    failedFileId?: string,
   ) => {
     onProgress({
       book,
@@ -654,6 +660,9 @@ const loadBooksInFolder = async (
       discoveredCount,
       processedCount,
       complete,
+      discoveredFile,
+      processedFileId,
+      failedFileId,
     });
   };
 
@@ -662,7 +671,7 @@ const loadBooksInFolder = async (
     await listEpubFiles(folderId, ignoreCache, async (file) => {
       const bookOrder = discoveredCount;
       discoveredCount++;
-      reportProgress();
+      reportProgress(undefined, undefined, false, file);
 
       const task = (async () => {
         let book: BookMetadata | null = null;
@@ -674,7 +683,14 @@ const loadBooksInFolder = async (
 
         processedCount++;
         if (book) results[bookOrder] = book;
-        reportProgress(book ?? undefined, bookOrder);
+        reportProgress(
+          book ?? undefined,
+          bookOrder,
+          false,
+          undefined,
+          file.id,
+          book ? undefined : file.id,
+        );
       })().finally(() => activeTasks.delete(task));
 
       activeTasks.add(task);

@@ -13,6 +13,7 @@ export interface SeriesGroup {
   name: string;
   books: BookMetadata[];
   coverBlob?: Blob;
+  filter?: { key: 'author' | 'tag' | 'untagged'; value: string };
 }
 
 export const SeriesGrid = ({ series }: { series: SeriesGroup[] }) => {
@@ -25,6 +26,16 @@ export const SeriesGrid = ({ series }: { series: SeriesGroup[] }) => {
           key={group.books[0]?.id ?? group.name}
           className="group w-full rounded-sm text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
           onClick={() => {
+            if (group.filter) {
+              const filterQuery =
+                group.filter.key === 'untagged'
+                  ? 'untagged=1&groupBy=none'
+                  : `${group.filter.key}=${encodeURIComponent(group.filter.value)}&groupBy=none`;
+              navigate(`/bookshelf?${filterQuery}`, {
+                state: { returnScrollY: window.scrollY },
+              });
+              return;
+            }
             if (group.books.length === 1) {
               navigate(`/book/${group.books[0].id}`, {
                 state: {
@@ -40,39 +51,29 @@ export const SeriesGrid = ({ series }: { series: SeriesGroup[] }) => {
             });
           }}
         >
-          <Card className="h-full cursor-pointer border-0 bg-transparent shadow-none transition-colors hover:bg-transparent">
+          <Card className="h-full cursor-pointer border bg-card p-2 shadow transition hover:bg-gray-50 hover:shadow-md dark:hover:bg-gray-800">
             <CardHeader className="p-0">
-              <div className="relative aspect-[2/3] w-full min-h-0 flex-none bg-muted">
+              <div className="relative aspect-[2/3] w-full min-h-0 flex-none overflow-hidden rounded-sm bg-muted">
                 {group.books.length > 1 ? (
                   <>
-                    {group.books.slice(1, 3).map((book, index) => {
-                      const stackOffset = (2 - index) * 5;
-
-                      return (
-                        <div
-                          key={book.id}
-                          aria-hidden="true"
-                          className="absolute inset-0 overflow-hidden shadow-[1px_1px_2px_rgba(0,0,0,0.3)]"
-                          style={{
-                            transform: `translate(${stackOffset}px, -${stackOffset}px)`,
-                            zIndex: index + 1,
-                          }}
-                        >
-                          <LazyImage
-                            src={book.coverBlob}
-                            alt=""
-                            className="absolute inset-0 h-full w-full"
-                            imageClassName="h-full w-full object-cover"
-                          />
-                        </div>
-                      );
-                    })}
-                    <div className="absolute inset-0 z-[3] overflow-hidden">
+                    <div
+                      aria-hidden="true"
+                      className="absolute inset-0 overflow-hidden rounded-sm shadow-sm"
+                      style={{ transform: 'translate(12px, -12px)' }}
+                    >
+                      <LazyImage
+                        src={group.books[1].coverBlob}
+                        alt=""
+                        className="absolute inset-0 h-full w-full"
+                        imageClassName="h-full w-full object-cover"
+                      />
+                    </div>
+                    <div className="absolute bottom-0 left-0 right-3 top-3 z-[3] overflow-hidden rounded-sm shadow-md">
                       <LazyImage
                         src={group.books[0].coverBlob}
                         alt=""
                         className="absolute inset-0 h-full w-full"
-                        imageClassName="h-full w-full object-cover transition-transform duration-300 ease-in-out group-hover:scale-105"
+                        imageClassName="h-full w-full object-cover"
                       />
                     </div>
                   </>
@@ -81,7 +82,7 @@ export const SeriesGrid = ({ series }: { series: SeriesGroup[] }) => {
                     src={group.coverBlob}
                     alt=""
                     className="absolute inset-0 h-full w-full"
-                    imageClassName="h-full w-full object-cover transition-transform duration-300 ease-in-out group-hover:scale-105"
+                    imageClassName="h-full w-full object-cover"
                   />
                 )}
               </div>
