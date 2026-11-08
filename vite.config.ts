@@ -1,3 +1,4 @@
+import { execFileSync } from 'node:child_process';
 import path from 'path';
 import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
@@ -7,6 +8,14 @@ import { VitePWA } from 'vite-plugin-pwa';
 // https://vitejs.dev/config/
 export default defineConfig(({ mode }) => ({
   base: mode === 'production' ? '/epub-bookshelf/' : '/',
+  define: {
+    __APP_VERSION__: JSON.stringify(
+      process.env.VITE_APP_VERSION ??
+        execFileSync('git', ['describe', '--tags', '--always'], {
+          encoding: 'utf8',
+        }).trim(),
+    ),
+  },
   plugins: [
     react(),
     tailwindcss(),

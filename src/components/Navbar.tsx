@@ -1,7 +1,6 @@
 import { House, Search, Settings } from 'lucide-react';
-import { type FC } from 'react';
+import { Suspense, lazy, type FC } from 'react';
 import { NavLink } from 'react-router-dom';
-import { ModeToggle } from './ModeToggle';
 import { Button } from './ui/button';
 import {
   Dialog,
@@ -11,6 +10,8 @@ import {
   DialogTitle,
   DialogTrigger,
 } from './ui/dialog';
+
+const SettingsPage = lazy(() => import('../pages/SettingsPage'));
 
 interface NavbarProps {
   searchQuery: string;
@@ -49,17 +50,22 @@ export const Navbar: FC<NavbarProps> = ({ searchQuery, onSearchChange }) => {
                 Settings
               </Button>
             </DialogTrigger>
-            <DialogContent>
-              <DialogHeader>
+            <DialogContent className="max-h-[90dvh] max-w-2xl overflow-y-auto">
+              <DialogHeader className="sr-only">
                 <DialogTitle>Settings</DialogTitle>
                 <DialogDescription>
-                  Choose how EPUB Bookshelf looks on this device.
+                  Manage Google Drive, local storage, and bookshelf preferences.
                 </DialogDescription>
               </DialogHeader>
-              <div className="flex items-center justify-between gap-4">
-                <span className="text-sm font-medium">Appearance</span>
-                <ModeToggle />
-              </div>
+              <Suspense
+                fallback={
+                  <p className="text-sm text-muted-foreground">
+                    Loading settings…
+                  </p>
+                }
+              >
+                <SettingsPage />
+              </Suspense>
             </DialogContent>
           </Dialog>
         </div>

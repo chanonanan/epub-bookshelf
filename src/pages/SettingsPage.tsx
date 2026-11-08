@@ -502,6 +502,10 @@ export default function SettingsPage() {
         />
       </Section>
 
+      <p className="pb-2 text-center text-xs text-muted-foreground">
+        Version {__APP_VERSION__}
+      </p>
+
       {actionMessage && (
         <p role="status" className="text-sm text-muted-foreground">
           {actionMessage}
