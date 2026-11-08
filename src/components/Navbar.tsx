@@ -19,7 +19,7 @@ interface NavbarProps {
 
 export const Navbar: FC<NavbarProps> = ({ searchQuery, onSearchChange }) => {
   return (
-    <header className="sticky top-0 z-40 hidden w-full border-b border-border bg-background/95 backdrop-blur md:block">
+    <header className="desktop-navbar sticky top-0 z-40 hidden w-full border-b border-border bg-background/95 backdrop-blur md:block">
       <div className="container-wrapper flex h-14 items-center justify-between gap-3">
         <NavLink
           to="/"

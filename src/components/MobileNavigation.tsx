@@ -15,10 +15,12 @@ export function MobileNavigation({
   const { pathname } = location;
   const navigate = useNavigate();
   const [isSearchOpen, setIsSearchOpen] = useState(false);
+  const navigationRef = useRef<HTMLElement>(null);
   const searchInputRef = useRef<HTMLInputElement>(null);
   const searchTriggerRef = useRef<HTMLButtonElement>(null);
   const searchReturnLocationRef = useRef(location);
   const hasOpenedSearchRef = useRef(false);
+  const isSearchInputFocusedRef = useRef(false);
   const isHomeActive = pathname === '/';
   const isShelfActive =
     pathname === '/bookshelf' ||
@@ -34,6 +36,54 @@ export function MobileNavigation({
     } else if (hasOpenedSearchRef.current) {
       searchTriggerRef.current?.focus({ preventScroll: true });
     }
+  }, [isSearchOpen]);
+
+  useEffect(() => {
+    if (!isSearchOpen) return;
+
+    const navigation = navigationRef.current;
+    if (!navigation) return;
+
+    const visualViewport = window.visualViewport;
+    let animationFrame = 0;
+    const updateVisibleBottom = () => {
+      cancelAnimationFrame(animationFrame);
+      animationFrame = requestAnimationFrame(() => {
+        const layoutHeight =
+          document.documentElement.clientHeight || window.innerHeight;
+        if (!isSearchInputFocusedRef.current) return;
+
+        const visibleBottom = visualViewport
+          ? visualViewport.offsetTop + visualViewport.height
+          : layoutHeight;
+        const viewportOcclusion = Math.max(0, layoutHeight - visibleBottom);
+        navigation.classList.toggle(
+          'is-keyboard-visible',
+          viewportOcclusion > 100,
+        );
+
+        navigation.style.setProperty(
+          '--mobile-dock-viewport-offset',
+          `${viewportOcclusion}px`,
+        );
+      });
+    };
+
+    updateVisibleBottom();
+    visualViewport?.addEventListener('resize', updateVisibleBottom);
+    visualViewport?.addEventListener('scroll', updateVisibleBottom);
+    window.addEventListener('resize', updateVisibleBottom);
+    window.addEventListener('orientationchange', updateVisibleBottom);
+
+    return () => {
+      cancelAnimationFrame(animationFrame);
+      visualViewport?.removeEventListener('resize', updateVisibleBottom);
+      visualViewport?.removeEventListener('scroll', updateVisibleBottom);
+      window.removeEventListener('resize', updateVisibleBottom);
+      window.removeEventListener('orientationchange', updateVisibleBottom);
+      navigation.classList.remove('is-keyboard-visible');
+      navigation.style.removeProperty('--mobile-dock-viewport-offset');
+    };
   }, [isSearchOpen]);
 
   useEffect(() => {
@@ -72,8 +122,18 @@ export function MobileNavigation({
     navigate(searchReturnLocationRef.current);
   };
 
+  const handleSearchInputBlur = () => {
+    isSearchInputFocusedRef.current = false;
+    const navigation = navigationRef.current;
+    if (!navigation) return;
+
+    navigation.classList.add('is-keyboard-visible');
+    navigation.style.setProperty('--mobile-dock-viewport-offset', '0px');
+  };
+
   return (
     <nav
+      ref={navigationRef}
       aria-label="Mobile navigation"
       className={`mobile-dock ${isSearchOpen ? 'is-search-open' : ''}`}
     >
@@ -144,6 +204,10 @@ export function MobileNavigation({
           aria-label="Search books"
           placeholder="Search books..."
           value={searchQuery}
+          onFocus={() => {
+            isSearchInputFocusedRef.current = true;
+          }}
+          onBlur={handleSearchInputBlur}
           onChange={(event) => onSearchChange(event.target.value)}
           className="mobile-search-input"
         />
