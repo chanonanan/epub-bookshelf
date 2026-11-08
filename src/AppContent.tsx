@@ -13,6 +13,7 @@ import {
   Route,
   Routes,
   useLocation,
+  useNavigate,
   useParams,
 } from 'react-router-dom';
 import { Navbar } from './components/Navbar';
@@ -26,9 +27,13 @@ const SettingsPage = lazy(() => import('./pages/SettingsPage'));
 
 export const AppContent = () => {
   const location = useLocation();
+  const navigate = useNavigate();
   const previousPathRef = useRef(location.pathname);
   const scrollPositionsRef = useRef(new Map<string, number>());
   const [libraryFolders, setLibraryFolders] = useState<LibraryFolder[]>([]);
+  const [devTestFolders, setDevTestFolders] = useState<LibraryFolder[] | null>(
+    null,
+  );
   const libraryFoldersRef = useRef(libraryFolders);
   const [searchQuery, setSearchQuery] = useState('');
   const [isLoadingFolders, setIsLoadingFolders] = useState(true);
@@ -144,6 +149,15 @@ export const AppContent = () => {
     [saveFolders],
   );
 
+  const handleLoadDevTestData = import.meta.env.DEV
+    ? async (onProgress: (loaded: number, total: number) => void) => {
+        const { loadDevTestFolders } = await import('./devTestData');
+        const folders = await loadDevTestFolders(onProgress);
+        setDevTestFolders(folders);
+        navigate('/bookshelf');
+      }
+    : undefined;
+
   return (
     <div className="app-shell flex flex-col">
       <Navbar searchQuery={searchQuery} onSearchChange={setSearchQuery} />
@@ -156,6 +170,7 @@ export const AppContent = () => {
                 <HomePage
                   isLoadingFolders={isLoadingFolders}
                   libraryFolders={libraryFolders}
+                  onLoadDevTestData={handleLoadDevTestData}
                   onFolderSelect={handleFolderPicked}
                   onFolderRemove={handleRemoveFolder}
                   onFolderCountsChange={handleFolderCountsChange}
@@ -167,7 +182,7 @@ export const AppContent = () => {
               path="/bookshelf"
               element={
                 <BookshelfPage
-                  folders={libraryFolders}
+                  folders={devTestFolders ?? libraryFolders}
                   searchQuery={searchQuery}
                 />
               }
@@ -180,7 +195,7 @@ export const AppContent = () => {
               path="/book/:id"
               element={
                 <BookDetailsPage
-                  folders={libraryFolders}
+                  folders={devTestFolders ?? libraryFolders}
                   onSearchChange={setSearchQuery}
                 />
               }

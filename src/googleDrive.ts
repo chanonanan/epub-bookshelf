@@ -179,6 +179,8 @@ export const listEpubFiles = async (
  * Download an EPUB file from Drive (no caching)
  */
 export const downloadFile = async (fileId: string): Promise<Blob | null> => {
+  if (fileId.startsWith('local-test-')) return null;
+
   const tokens = await getTokens();
   if (!tokens) return null;
 

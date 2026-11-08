@@ -53,6 +53,21 @@ npm run dev
 
 The app will be available at `http://localhost:5173`
 
+### Mobile testing with local bookshelf data
+
+The development build includes a **Load test data** button on the home page.
+On first use, it copies the browser-exported metadata and cover images from
+`local-test-data/` into the app's normal IndexedDB caches. The dataset directory
+is ignored by Git and served only by Vite. Later loads use the IndexedDB copy.
+To open the app on a phone on the same network, visit
+`http://<dev-machine-IP>:5173`.
+
+The local fixture contains book metadata and cover images (about 380 MiB), but
+not EPUB files. Browsing, searching, grouping, and book details work without
+Google sign-in; EPUB downloads and metadata refresh are unavailable for fixture
+books. Keep the development server on a trusted network while this personal
+data is present.
+
 ## Building for Production
 
 ```bash

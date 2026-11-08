@@ -558,6 +558,10 @@ export const refreshBookInfo = async (
   fileId: string,
   fileSize: string,
 ): Promise<BookMetadata | null> => {
+  if (fileId.startsWith('local-test-')) {
+    return getMetadataById(fileId);
+  }
+
   await metadataCache.removeItem(fileId);
   return getMetadata({
     id: fileId,

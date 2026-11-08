@@ -10,6 +10,7 @@ import {
 import {
   BookOpen,
   FolderOpen,
+  Database,
   MoreHorizontal,
   RefreshCw,
   Trash2,
@@ -22,6 +23,9 @@ import { initializeGoogleAuth, listEpubFiles } from '../googleDrive';
 interface HomePageProps {
   isLoadingFolders: boolean;
   libraryFolders: LibraryFolder[];
+  onLoadDevTestData?: (
+    onProgress: (loaded: number, total: number) => void,
+  ) => Promise<void>;
   onFolderSelect: (folderId: string, folderName: string) => Promise<void>;
   onFolderRemove: (folderId: string) => Promise<void>;
   onFolderCountsChange: (counts: Record<string, number>) => Promise<void>;
@@ -31,6 +35,7 @@ interface HomePageProps {
 export default function HomePage({
   isLoadingFolders,
   libraryFolders,
+  onLoadDevTestData,
   onFolderSelect,
   onFolderRemove,
   onFolderCountsChange,
@@ -45,6 +50,8 @@ export default function HomePage({
   const [removingFolders, setRemovingFolders] = useState<Set<string>>(
     new Set(),
   );
+  const [isLoadingTestData, setIsLoadingTestData] = useState(false);
+  const [testDataProgress, setTestDataProgress] = useState('');
 
   useEffect(() => {
     let active = true;
@@ -162,7 +169,7 @@ export default function HomePage({
     }
   };
 
-  if (isAuthLoading || isLoadingFolders) {
+  if (isLoadingFolders || (isAuthLoading && !import.meta.env.DEV)) {
     return (
       <div className="flex min-h-[calc(100vh-3.5rem)] items-center justify-center">
         <div className="h-12 w-12 animate-spin rounded-full border-t-2 border-b-2 border-primary" />
@@ -170,7 +177,7 @@ export default function HomePage({
     );
   }
 
-  if (error && libraryFolders.length === 0) {
+  if (error && libraryFolders.length === 0 && !import.meta.env.DEV) {
     return (
       <div className="flex min-h-[calc(100vh-3.5rem)] flex-col items-center justify-center gap-4">
         <p className="text-destructive">{error}</p>
@@ -205,6 +212,38 @@ export default function HomePage({
               Explore Bookshelf
             </Link>
           </Button>
+          {import.meta.env.DEV && onLoadDevTestData && (
+            <Button
+              type="button"
+              variant="outline"
+              className="mt-3 gap-2"
+              disabled={isLoadingTestData}
+              onClick={async () => {
+                setError(null);
+                setIsLoadingTestData(true);
+                setTestDataProgress('');
+                try {
+                  await onLoadDevTestData((loaded, total) => {
+                    setTestDataProgress(`${loaded} of ${total}`);
+                  });
+                } catch (err) {
+                  console.error('Failed to load local test data:', err);
+                  setError(
+                    err instanceof Error
+                      ? err.message
+                      : 'Could not load local test data.',
+                  );
+                } finally {
+                  setIsLoadingTestData(false);
+                }
+              }}
+            >
+              <Database aria-hidden="true" />
+              {isLoadingTestData
+                ? `Loading covers${testDataProgress ? ` (${testDataProgress})` : '...'}`
+                : 'Load test data'}
+            </Button>
+          )}
         </div>
       </section>
 

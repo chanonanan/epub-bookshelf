@@ -70,6 +70,7 @@ export default defineConfig(({ mode }) => ({
     host: '0.0.0.0',
     watch: {
       usePolling: true,
+      ignored: ['**/local-test-data/**'],
     },
   },
 }));
