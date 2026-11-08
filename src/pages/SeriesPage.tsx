@@ -16,13 +16,15 @@ export default function SeriesPage({ folders, searchQuery }: SeriesPageProps) {
 
   return (
     <div className="mx-auto">
-      <PageHeader
-        backLabel="Bookshelf"
-        backTo="/bookshelf"
-        backScrollY={routeState?.returnScrollY}
-        title={selectedSeries || 'Series'}
-        iconOnlyBack
-      />
+      <div className="max-w-4xl mx-auto">
+        <PageHeader
+          backLabel="Bookshelf"
+          backTo="/bookshelf"
+          backScrollY={routeState?.returnScrollY}
+          title={selectedSeries || 'Series'}
+          iconOnlyBack
+        />
+      </div>
       <Bookshelf
         folders={folders}
         initialSeries={selectedSeries || ''}
