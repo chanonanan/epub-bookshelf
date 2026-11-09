@@ -28,6 +28,10 @@ export function MobileNavigation({
   const searchReturnLocationRef = useRef(location);
   const hasOpenedSearchRef = useRef(false);
   const isSearchInputFocusedRef = useRef(false);
+  const searchFocusScrollYRef = useRef(0);
+  const searchFocusViewportHeightRef = useRef(0);
+  const keyboardScrollRestoredRef = useRef(false);
+  const keyboardScrollRestoreTimerRef = useRef<number | null>(null);
   const isHomeActive = pathname === '/';
   const isShelfActive =
     pathname === '/bookshelf' ||
@@ -54,6 +58,10 @@ export function MobileNavigation({
       if (!isSearchInputFocusedRef.current) {
         navigation.classList.remove('is-keyboard-visible');
         setViewportOffset(0);
+        if (keyboardScrollRestoreTimerRef.current !== null) {
+          window.clearTimeout(keyboardScrollRestoreTimerRef.current);
+          keyboardScrollRestoreTimerRef.current = null;
+        }
         return;
       }
 
@@ -68,12 +76,44 @@ export function MobileNavigation({
         0,
         fixedViewportBottom - visibleBottom,
       );
-      navigation.classList.toggle(
-        'is-keyboard-visible',
-        viewportOcclusion > 100,
-      );
+      const currentViewportHeight = visualViewport?.height ?? window.innerHeight;
+      const isKeyboardVisible =
+        viewportOcclusion > 100 ||
+        searchFocusViewportHeightRef.current - currentViewportHeight > 100;
+      navigation.classList.toggle('is-keyboard-visible', isKeyboardVisible);
 
       setViewportOffset(viewportOcclusion);
+
+      if (!isKeyboardVisible) {
+        keyboardScrollRestoredRef.current = false;
+        if (keyboardScrollRestoreTimerRef.current !== null) {
+          window.clearTimeout(keyboardScrollRestoreTimerRef.current);
+          keyboardScrollRestoreTimerRef.current = null;
+        }
+        return;
+      }
+      if (keyboardScrollRestoredRef.current) return;
+
+      if (keyboardScrollRestoreTimerRef.current !== null) {
+        window.clearTimeout(keyboardScrollRestoreTimerRef.current);
+      }
+      keyboardScrollRestoreTimerRef.current = window.setTimeout(() => {
+        keyboardScrollRestoreTimerRef.current = null;
+        if (
+          !isSearchInputFocusedRef.current ||
+          keyboardScrollRestoredRef.current
+        ) {
+          return;
+        }
+
+        if (Math.abs(window.scrollY - searchFocusScrollYRef.current) > 1) {
+          window.scrollTo({
+            top: searchFocusScrollYRef.current,
+            behavior: 'auto',
+          });
+        }
+        keyboardScrollRestoredRef.current = true;
+      }, 120);
     };
 
     const initialMeasurement = window.setTimeout(updateVisibleBottom, 100);
@@ -81,14 +121,19 @@ export function MobileNavigation({
     visualViewport?.addEventListener('resize', updateVisibleBottom);
     visualViewport?.addEventListener('scroll', updateVisibleBottom);
     window.addEventListener('resize', updateVisibleBottom);
+    window.addEventListener('scroll', updateVisibleBottom);
     window.addEventListener('orientationchange', updateVisibleBottom);
 
     return () => {
       visualViewport?.removeEventListener('resize', updateVisibleBottom);
       visualViewport?.removeEventListener('scroll', updateVisibleBottom);
       window.removeEventListener('resize', updateVisibleBottom);
+      window.removeEventListener('scroll', updateVisibleBottom);
       window.removeEventListener('orientationchange', updateVisibleBottom);
       window.clearTimeout(initialMeasurement);
+      if (keyboardScrollRestoreTimerRef.current !== null) {
+        window.clearTimeout(keyboardScrollRestoreTimerRef.current);
+      }
       navigation.classList.remove('is-keyboard-visible');
     };
   }, []);
@@ -131,6 +176,11 @@ export function MobileNavigation({
 
   const handleSearchInputBlur = () => {
     isSearchInputFocusedRef.current = false;
+    keyboardScrollRestoredRef.current = false;
+    if (keyboardScrollRestoreTimerRef.current !== null) {
+      window.clearTimeout(keyboardScrollRestoreTimerRef.current);
+      keyboardScrollRestoreTimerRef.current = null;
+    }
     const navigation = navigationRef.current;
     if (!navigation) return;
 
@@ -217,6 +267,10 @@ export function MobileNavigation({
           placeholder={t('common.searchBooks')}
           value={searchQuery}
           onFocus={() => {
+            searchFocusScrollYRef.current = window.scrollY;
+            searchFocusViewportHeightRef.current =
+              window.visualViewport?.height ?? window.innerHeight;
+            keyboardScrollRestoredRef.current = false;
             isSearchInputFocusedRef.current = true;
           }}
           onBlur={handleSearchInputBlur}
