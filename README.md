@@ -13,9 +13,12 @@ A React web app that lets you browse and read EPUB books from your Google Drive.
 - Built-in EPUB reader (epub.js)
 - Local caching of book metadata and covers
 - Installable PWA with an offline-cached app shell
+- Update prompts let you install a new build or skip it; skipped builds are
+  remembered, and update checks are available in Settings
 
 The PWA caches the application shell and static assets. Google Drive content still
-requires an internet connection and Google authorization.
+requires an internet connection and Google authorization. Update prompts are
+shown in-app; background push notifications are not configured.
 
 ## Prerequisites
 

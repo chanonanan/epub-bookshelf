@@ -27,6 +27,7 @@ import {
   initializeGoogleAuth,
 } from '../googleDrive';
 import { useTranslate } from '@/lib/useTranslate';
+import { useAppUpdate } from '@/lib/appUpdateContext';
 
 type StorageEstimate = {
   usage?: number;
@@ -115,6 +116,15 @@ const fieldClassName =
 
 export default function SettingsPage() {
   const { t } = useTranslate();
+  const {
+    updateAvailable,
+    updateVersion,
+    status: updateStatus,
+    isChecking,
+    isInstalling,
+    checkForUpdates,
+    installUpdate,
+  } = useAppUpdate();
   const [settings, updateSettings] = useSettingsStore();
   const { theme, setTheme } = useTheme();
   const [isConnected, setIsConnected] = useState(false);
@@ -217,21 +227,6 @@ export default function SettingsPage() {
   const forceResync = () => {
     console.log('Force full Drive resync requested.');
     setActionMessage(t('settings.fullDriveResyncNotImplemented'));
-  };
-
-  const handleServiceWorkerUpdate = async () => {
-    try {
-      const registration = await navigator.serviceWorker?.getRegistration();
-      if (!registration) {
-        setActionMessage(t('settings.noServiceWorker'));
-        return;
-      }
-      await registration.update();
-      window.location.reload();
-    } catch (error) {
-      console.error('Failed to check for service worker updates:', error);
-      setActionMessage(t('settings.updateFailed'));
-    }
   };
 
   const handleClearAllData = async () => {
@@ -508,14 +503,61 @@ export default function SettingsPage() {
         title={t('settings.advancedDeveloper')}
         description={t('settings.advancedDeveloperDescription')}
       >
-        <Button
-          variant="outline"
-          className="whitespace-normal"
-          onClick={() => void handleServiceWorkerUpdate()}
-        >
-          <RefreshCw aria-hidden="true" />
-          {t('settings.serviceWorkerUpdate')}
-        </Button>
+        {updateAvailable && (
+          <p role="status" className="text-sm text-muted-foreground">
+            {t('settings.newVersionAvailable', {
+              version: updateVersion ?? t('settings.unknownVersion'),
+            })}
+          </p>
+        )}
+        {updateStatus === 'checking' && (
+          <p role="status" className="text-sm text-muted-foreground">
+            {t('settings.checkingForUpdates')}
+          </p>
+        )}
+        {updateStatus === 'upToDate' && (
+          <p role="status" className="text-sm text-muted-foreground">
+            {t('settings.upToDate')}
+          </p>
+        )}
+        {updateStatus === 'noServiceWorker' && (
+          <p role="status" className="text-sm text-muted-foreground">
+            {t('settings.noServiceWorker')}
+          </p>
+        )}
+        {(updateStatus === 'failed' || updateStatus === 'installFailed') && (
+          <p role="alert" className="text-sm text-destructive">
+            {t(
+              updateStatus === 'failed'
+                ? 'settings.updateFailed'
+                : 'settings.updateInstallFailed',
+            )}
+          </p>
+        )}
+        <div className="flex flex-wrap gap-2">
+          <Button
+            variant="outline"
+            className="whitespace-normal"
+            onClick={() => void checkForUpdates()}
+            disabled={isChecking || isInstalling}
+          >
+            <RefreshCw aria-hidden="true" />
+            {isChecking
+              ? t('settings.checkingForUpdates')
+              : t('settings.checkForUpdates')}
+          </Button>
+          {updateAvailable && (
+            <Button
+              className="whitespace-normal"
+              onClick={() => void installUpdate()}
+              disabled={isInstalling}
+            >
+              {isInstalling
+                ? t('settings.installingUpdate')
+                : t('settings.installUpdate')}
+            </Button>
+          )}
+        </div>
         <Toggle
           label={t('settings.diagnosticNetworkLogs')}
           description={t('settings.diagnosticNetworkLogsDescription')}

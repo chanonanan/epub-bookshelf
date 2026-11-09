@@ -18,6 +18,7 @@ import {
 } from 'react-router-dom';
 import { Navbar } from './components/Navbar';
 import { MobileNavigation } from './components/MobileNavigation';
+import { AppUpdateManager } from './components/AppUpdateManager';
 import type { LibraryFolder } from './types/library';
 
 const HomePage = lazy(() => import('./pages/HomePage'));
@@ -159,68 +160,70 @@ export const AppContent = () => {
     : undefined;
 
   return (
-    <div className="app-shell flex flex-col">
-      <Navbar searchQuery={searchQuery} onSearchChange={setSearchQuery} />
-      <main className="app-main flex-1 container-wrapper mx-auto max-w-7xl px-4">
-        <Suspense fallback={<div>Loading...</div>}>
-          <Routes>
-            <Route
-              path="/"
-              element={
-                <HomePage
-                  isLoadingFolders={isLoadingFolders}
-                  libraryFolders={libraryFolders}
-                  onLoadDevTestData={handleLoadDevTestData}
-                  onFolderSelect={handleFolderPicked}
-                  onFolderRemove={handleRemoveFolder}
-                  onFolderCountsChange={handleFolderCountsChange}
-                  onFolderRefreshed={handleFolderRefreshed}
-                />
-              }
-            />
-            <Route
-              path="/bookshelf"
-              element={
-                <BookshelfPage
-                  folders={devTestFolders ?? libraryFolders}
-                  searchQuery={searchQuery}
-                />
-              }
-            />
-            <Route
-              path="/series/:series"
-              element={<SeriesBookshelfRedirect />}
-            />
-            <Route
-              path="/book/:id"
-              element={
-                <BookDetailsPage
-                  folders={devTestFolders ?? libraryFolders}
-                  onSearchChange={setSearchQuery}
-                />
-              }
-            />
-            <Route path="/settings" element={<SettingsPage />} />
-            <Route
-              path="/bookshelf/:legacyPath"
-              element={<LegacyBookshelfRedirect />}
-            />
-            <Route
-              path="/bookshelf/:legacyFolder/:legacySeries"
-              element={<LegacyBookshelfRedirect />}
-            />
-            <Route
-              path="/book/:legacyFolder/:legacySeries/:legacyId"
-              element={<LegacyBookRedirect />}
-            />
-          </Routes>
-        </Suspense>
-      </main>
-      <MobileNavigation
-        searchQuery={searchQuery}
-        onSearchChange={setSearchQuery}
-      />
-    </div>
+    <AppUpdateManager>
+      <div className="app-shell flex flex-col">
+        <Navbar searchQuery={searchQuery} onSearchChange={setSearchQuery} />
+        <main className="app-main flex-1 container-wrapper mx-auto max-w-7xl px-4">
+          <Suspense fallback={<div>Loading...</div>}>
+            <Routes>
+              <Route
+                path="/"
+                element={
+                  <HomePage
+                    isLoadingFolders={isLoadingFolders}
+                    libraryFolders={libraryFolders}
+                    onLoadDevTestData={handleLoadDevTestData}
+                    onFolderSelect={handleFolderPicked}
+                    onFolderRemove={handleRemoveFolder}
+                    onFolderCountsChange={handleFolderCountsChange}
+                    onFolderRefreshed={handleFolderRefreshed}
+                  />
+                }
+              />
+              <Route
+                path="/bookshelf"
+                element={
+                  <BookshelfPage
+                    folders={devTestFolders ?? libraryFolders}
+                    searchQuery={searchQuery}
+                  />
+                }
+              />
+              <Route
+                path="/series/:series"
+                element={<SeriesBookshelfRedirect />}
+              />
+              <Route
+                path="/book/:id"
+                element={
+                  <BookDetailsPage
+                    folders={devTestFolders ?? libraryFolders}
+                    onSearchChange={setSearchQuery}
+                  />
+                }
+              />
+              <Route path="/settings" element={<SettingsPage />} />
+              <Route
+                path="/bookshelf/:legacyPath"
+                element={<LegacyBookshelfRedirect />}
+              />
+              <Route
+                path="/bookshelf/:legacyFolder/:legacySeries"
+                element={<LegacyBookshelfRedirect />}
+              />
+              <Route
+                path="/book/:legacyFolder/:legacySeries/:legacyId"
+                element={<LegacyBookRedirect />}
+              />
+            </Routes>
+          </Suspense>
+        </main>
+        <MobileNavigation
+          searchQuery={searchQuery}
+          onSearchChange={setSearchQuery}
+        />
+      </div>
+    </AppUpdateManager>
   );
 };
 
