@@ -164,7 +164,7 @@ export const AppContent = () => {
       <div className="app-shell flex flex-col">
         <Navbar searchQuery={searchQuery} onSearchChange={setSearchQuery} />
         <main className="app-main flex-1 container-wrapper mx-auto max-w-7xl px-4">
-          <Suspense fallback={<div>Loading...</div>}>
+          <Suspense fallback={<></>}>
             <Routes>
               <Route
                 path="/"
