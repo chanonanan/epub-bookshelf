@@ -328,8 +328,8 @@ export const Bookshelf: FC<BookshelfProps> = ({
   ]);
 
   const series = useMemo(
-    () => groupBooksByCategory(filteredBooks, groupBy, sortBy),
-    [filteredBooks, groupBy, sortBy],
+    () => groupBooksByCategory(filteredBooks, groupBy, sortBy, t),
+    [filteredBooks, groupBy, sortBy, t],
   );
   const isLoading = loading || loadedCacheKey !== cacheKey;
   const hasActiveFilters = Boolean(
@@ -743,24 +743,28 @@ export const Bookshelf: FC<BookshelfProps> = ({
                   <FilterChip
                     label={`${t('bookDetails.author')}: ${activeAuthor}`}
                     onRemove={() => updateShelfParam('author', null)}
+                    removeFilterLabel={t('common.removeFilter')}
                   />
                 )}
                 {activeSeries && (
                   <FilterChip
                     label={`${t('bookDetails.series')}: ${activeSeries}`}
                     onRemove={() => updateShelfParam('series', null)}
+                    removeFilterLabel={t('common.removeFilter')}
                   />
                 )}
                 {activeTag && (
                   <FilterChip
                     label={`${t('bookDetails.tags')}: ${activeTag}`}
                     onRemove={() => updateShelfParam('tag', null)}
+                    removeFilterLabel={t('common.removeFilter')}
                   />
                 )}
                 {activeUntagged && (
                   <FilterChip
                     label={t('bookshelf.untaggedBooks')}
                     onRemove={() => updateShelfParam('untagged', null)}
+                    removeFilterLabel={t('common.removeFilter')}
                   />
                 )}
                 <button
@@ -844,9 +848,11 @@ export const Bookshelf: FC<BookshelfProps> = ({
 function FilterChip({
   label,
   onRemove,
+  removeFilterLabel,
 }: {
   label: string;
   onRemove: () => void;
+  removeFilterLabel: string;
 }) {
   return (
     <button
@@ -856,7 +862,7 @@ function FilterChip({
     >
       <span className="truncate">{label}</span>
       <X aria-hidden="true" className="h-3 w-3 flex-none" />
-      <span className="sr-only">{t('common.removeFilter')}</span>
+      <span className="sr-only">{removeFilterLabel}</span>
     </button>
   );
 }
@@ -865,6 +871,7 @@ function groupBooksByCategory(
   books: BookMetadata[],
   groupBy: GroupBy,
   sortBy: SortBy,
+  translate: (key: string) => string,
 ): SeriesGroup[] {
   const compareBooks = (left: BookMetadata, right: BookMetadata) => {
     const leftValue = left[sortBy] ?? left.title;
@@ -880,9 +887,9 @@ function groupBooksByCategory(
   sortedBooks.forEach((book) => {
     const name =
       groupBy === 'author'
-        ? book.author || t('common.unknownAuthor')
+        ? book.author || translate('common.unknownAuthor')
         : groupBy === 'tags'
-          ? book.tags?.[0] || t('common.untagged')
+          ? book.tags?.[0] || translate('common.untagged')
           : book.series || book.title;
     const group = groups.get(name) ?? [];
     group.push(book);
