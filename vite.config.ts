@@ -15,6 +15,7 @@ export default defineConfig(({ mode }) => ({
           encoding: 'utf8',
         }).trim(),
     ),
+    __BUILD_DATE__: JSON.stringify(new Date().toISOString()),
   },
   plugins: [
     react(),

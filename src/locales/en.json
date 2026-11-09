@@ -17,6 +17,7 @@
     "loading": "Loading...",
     "unavailable": "Unavailable",
     "version": "Version {{version}}",
+    "buildDate": "Built {{date}}",
     "book": "book",
     "books": "books",
     "unknownAuthor": "Unknown author",

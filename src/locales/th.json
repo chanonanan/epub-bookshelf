@@ -17,6 +17,7 @@
     "loading": "กำลังโหลด...",
     "unavailable": "ไม่สามารถใช้งานได้",
     "version": "เวอร์ชัน {{version}}",
+    "buildDate": "สร้างเมื่อ {{date}}",
     "book": "เล่ม",
     "books": "เล่ม",
     "unknownAuthor": "ผู้แต่งไม่ทราบ",

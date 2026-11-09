@@ -527,7 +527,14 @@ export default function SettingsPage() {
       </Section>
 
       <p className="pb-2 text-center text-xs text-muted-foreground">
-        {t('settings.version', { version: __APP_VERSION__ })}
+        {t('common.version', { version: __APP_VERSION__ })}
+        <br />
+        {t('common.buildDate', {
+          date: new Intl.DateTimeFormat(i18n.language, {
+            dateStyle: 'medium',
+            timeStyle: 'short',
+          }).format(new Date(__BUILD_DATE__)),
+        })}
       </p>
 
       {actionMessage && (
