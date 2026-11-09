@@ -91,6 +91,15 @@ export default defineConfig(({ mode }) => ({
       },
       workbox: {
         navigateFallback: 'index.html',
+        globPatterns: ['**/*.{js,css}'],
+        globIgnores: [
+          '**/*.map',
+          '**/sw.js',
+          '**/sw.js.map',
+          '**/build-info.json',
+          '**/vite.svg',
+        ],
+        maximumFileSizeToCacheInBytes: 10 * 1024 * 1024,
       },
     }),
   ],
